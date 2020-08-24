@@ -7,19 +7,15 @@ import java.awt.Graphics;
 import java.awt.Menu;
 import java.awt.MenuBar;
 import java.awt.MenuItem;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 
 /**
  * Sovellus Simple3D Sovelma piirtää ruudulle kolmiulotteisen kappaleen, joka pyörii. Pyörimisen
  * suuntaa voidaan muuttaa klikkaamalla kappaletta sen eri kohdista ja kappaleen väriä seka muotoa
  * voidaan muuttaa asianomaisista valikoista
- *
+ * <p>
  * Sovelluksen Simple3D ja siihen liittyvat luokat Piste ja Kappale on kirjoittanut tammikuussa
  * 1998. Minimaalisesti refaktoroitu ja viety Githubiin elokuussa 2020.
- *
+ * <p>
  * (c) Marko Ullgren 1997-1998
  */
 public class Simple3D extends Frame implements Runnable {
