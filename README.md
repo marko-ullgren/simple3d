@@ -13,6 +13,6 @@ This repository holds a vintage Java 1.1 application originally written by me in
 ## Known issues
 
 * Much of the used APIs are depracated. Some of them were depracated even in 1998
-* Event handing is naive and using the depracated API. Oh well. As a result for example the frame cannot be closed normally but the process needs to be killed instead
+* Event handling is naive and using the depracated API. Oh well. As a result for example the frame cannot be closed normally but the process needs to be killed instead
 * Much of the naming and commenting is in Finnish. Looks silly.
 * I would do the OO design much differently today
