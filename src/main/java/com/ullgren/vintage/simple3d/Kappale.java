@@ -4,23 +4,23 @@ import java.awt.Color;
 import java.awt.Graphics;
 
 /**
- * Luokassa Kappale maaritellaan kolmeulotteisen avaruuden kappale.
+ * Luokassa Kappale määritellään kolmeulotteisen avaruuden kappale.
  * <p>
- * Koordinaatiston origo on piirtoalueen keskella, x-akselin positiivinen suunta on oikealle,
- * y-akselin ylaspain ja z-akselin katsojasta poispain.
+ * Koordinaatiston origo on piirtoalueen keskellä, x-akselin positiivinen suunta on oikealle,
+ * y-akselin ylöspäin ja z-akselin katsojasta poispäin.
  */
 public class Kappale {
 
   public static final double PROJEKTIOKERROIN = 0.0010;
-  private Piste[] pisteet;// taulukkoon pisteet talletetaan kappaleen pisteet
+  private Piste[] pisteet;  // taulukkoon pisteet talletetaan kappaleen pisteet
 
   private int[][] yhd;    // Taulukkoon yhd, jonka tulee olla muotoa int[][2],
   // talletetaan ne pisteparit, jotka yhdistetaan
   // toisiinsa viivalla. Taulukko on siis muotoa {{p1,p2},...
   // ,{pn-1,pn}}, jossa px on pisteen indeksi pisteet-taulukossa
 
-  private Color vari;    // kappaleen väri
-  private Color tummavari;// kappaleen taka-alalla olevien osien väri
+  private Color vari;       // kappaleen väri
+  private Color tummavari;  // kappaleen taka-alalla olevien osien väri
 
   public Kappale(Piste[] pisteet, int[][] yhd, Color vari) {
 
@@ -61,7 +61,7 @@ public class Kappale {
   }
 
   public void vaihdaVari(Color uusivari) {
-    // vaihtaa kappaleen varin uudeksi
+    // vaihtaa kappaleen värin uudeksi
     this.vari = uusivari;
     this.tummavari = this.vari.darker();
   }

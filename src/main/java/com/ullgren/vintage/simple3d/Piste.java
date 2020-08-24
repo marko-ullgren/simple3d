@@ -1,7 +1,7 @@
 package com.ullgren.vintage.simple3d;
 
 /**
- * Luokassa Piste maaritellaan kolmiulotteisen koordinaatiston piste (x,y,z)
+ * Luokassa Piste määritellään kolmiulotteisen koordinaatiston piste (x,y,z)
  */
 public class Piste {
 

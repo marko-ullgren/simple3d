@@ -9,7 +9,7 @@ import java.awt.MenuBar;
 import java.awt.MenuItem;
 
 /**
- * Sovellus Simple3D Sovelma piirtää ruudulle kolmiulotteisen kappaleen, joka pyörii. Pyörimisen
+ * Sovellus Simple3D piirtää ruudulle kolmiulotteisen kappaleen, joka pyörii. Pyörimisen
  * suuntaa voidaan muuttaa klikkaamalla kappaletta sen eri kohdista ja kappaleen väriä seka muotoa
  * voidaan muuttaa asianomaisista valikoista
  * <p>
@@ -40,7 +40,7 @@ public class Simple3D extends Frame implements Runnable {
     // luodaan uusi Kappale:
     kpl = new Kappale(muPisteet(), muViivat(), Color.blue);
 
-    // kaannetaan kappale oikein pain:
+    // käännetään kappale oikein pain:
     for (int i = 0; i < 60; i++) {
       kpl.kaannaZY();
     }
@@ -96,7 +96,7 @@ public class Simple3D extends Frame implements Runnable {
 
   public void run() {
     // Pääsilmukka
-    // asetetaan threadin prioritetti minimiin, jottei se hairitse muuta
+    // asetetaan threadin prioritetti minimiin, jottei se häiritse muuta
     // toimintaa
 
     Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
@@ -182,7 +182,7 @@ public class Simple3D extends Frame implements Runnable {
 
     // Reagoidaan GUI-komponenttien käyttöön
 
-    // vaihdetaan kappaleen varia tarvittaessa:
+    // vaihdetaan kappaleen väriä tarvittaessa:
 
     if (e.target instanceof MenuItem) {
       if (((MenuItem) e.target).getLabel().equals("Blue")) {
@@ -212,7 +212,7 @@ public class Simple3D extends Frame implements Runnable {
   }
 
   private static Piste[] muPisteet() {
-    // palautetaan arvona MU-kappaleen pisteista muodostuva taulukko
+    // palautetaan arvona MU-kappaleen pisteistä muodostuva taulukko
 
     Piste[] points = new Piste[36];
 
@@ -267,7 +267,7 @@ public class Simple3D extends Frame implements Runnable {
   }
 
   private static Piste[] cubePisteet() {
-    // palautetaan arvona kuution pisteista muodostuva taulukko
+    // palautetaan arvona kuution pisteistä muodostuva taulukko
 
     Piste[] points = new Piste[8];
 
