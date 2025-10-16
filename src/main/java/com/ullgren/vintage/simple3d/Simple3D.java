@@ -95,11 +95,7 @@ public class Simple3D extends Frame implements Runnable {
   }
 
   public void run() {
-    // Pääsilmukka
-    // asetetaan threadin prioritetti minimiin, jottei se häiritse muuta
-    // toimintaa
 
-    Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
     long startTime = System.currentTimeMillis();  // alkuaika, käytetään tahdistamiseen
 
     while (Thread.currentThread() == thread) {
@@ -147,7 +143,6 @@ public class Simple3D extends Frame implements Runnable {
     // muutetaan kappaleen liikemäärämomenttia sen mukaan.
 
     boolean kaynnistetaan = false;
-
     int herkkyys = 50; // vaikuttavan klikkauksen etäisyys keskeltä
 
     if (Lxz == 0 && Lyz == 0) {
