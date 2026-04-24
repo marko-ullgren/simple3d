@@ -38,10 +38,13 @@ public class Simple3D {
   private JPanel canvas;
   private int canvasWidth  = WIDTH;
   private int canvasHeight = HEIGHT;
-  private int angularMomentumXZ;
-  private int angularMomentumYZ;
+  private double angularMomentumXZ;
+  private double angularMomentumYZ;
   private double zoom = 1.0;
   private Timer animationTimer;
+
+  private static final double FRICTION        = 0.95;
+  private static final double STOP_THRESHOLD  = 0.1;
 
   public static void main(String[] args) {
     EventQueue.invokeLater(() -> new Simple3D().init());
@@ -133,16 +136,16 @@ public class Simple3D {
     panel.addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
-        boolean wasIdle = (angularMomentumXZ == 0 && angularMomentumYZ == 0);
+        boolean wasIdle = isIdle();
         int cx = canvasWidth  / 2;
         int cy = canvasHeight / 2;
 
-        if (e.getX() < cx - SENSITIVITY) angularMomentumXZ--;
-        if (e.getX() > cx + SENSITIVITY) angularMomentumXZ++;
-        if (e.getY() < cy - SENSITIVITY) angularMomentumYZ++;
-        if (e.getY() > cy + SENSITIVITY) angularMomentumYZ--;
+        if (e.getX() < cx - SENSITIVITY) angularMomentumXZ -= 1.0;
+        if (e.getX() > cx + SENSITIVITY) angularMomentumXZ += 1.0;
+        if (e.getY() < cy - SENSITIVITY) angularMomentumYZ += 1.0;
+        if (e.getY() > cy + SENSITIVITY) angularMomentumYZ -= 1.0;
 
-        if (angularMomentumXZ == 0 && angularMomentumYZ == 0) {
+        if (isIdle()) {
           stopAnimation();
         } else if (wasIdle) {
           startAnimation();
@@ -165,10 +168,11 @@ public class Simple3D {
   private void startAnimation() {
     if (animationTimer == null) {
       animationTimer = new Timer(40, e -> {
-        for (int i = 0; i < angularMomentumXZ; i++) body.rotateXZ();
-        for (int i = 0; i < angularMomentumYZ; i++) body.rotateZY();
-        if (angularMomentumXZ < 0) for (int i = 0; i > angularMomentumXZ; i--) body.rotateZX();
-        if (angularMomentumYZ < 0) for (int i = 0; i > angularMomentumYZ; i--) body.rotateYZ();
+        body.rotateXZ(angularMomentumXZ * Point3D.ROTATION_ANGLE);
+        body.rotateZY(angularMomentumYZ * Point3D.ROTATION_ANGLE);
+        angularMomentumXZ *= FRICTION;
+        angularMomentumYZ *= FRICTION;
+        if (isIdle()) stopAnimation();
         canvas.repaint();
       });
     }
@@ -178,5 +182,10 @@ public class Simple3D {
   private void stopAnimation() {
     angularMomentumXZ = angularMomentumYZ = 0;
     if (animationTimer != null) animationTimer.stop();
+  }
+
+  private boolean isIdle() {
+    return Math.abs(angularMomentumXZ) < STOP_THRESHOLD
+        && Math.abs(angularMomentumYZ) < STOP_THRESHOLD;
   }
 }
