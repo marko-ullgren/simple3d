@@ -44,7 +44,7 @@ public class Simple3D extends JFrame {
   }
 
   public void init() {
-    body = new Body(muPoints(), muEdges(), Color.blue);
+    body = new Body(muPoints(), muFaces(), Color.blue);
     for (int i = 0; i < 60; i++) {
       body.rotateZY();
     }
@@ -80,12 +80,12 @@ public class Simple3D extends JFrame {
     greenItem.addActionListener(e -> { body.setColour(Color.green); canvas.repaint(); });
 
     muItem.addActionListener(e -> {
-      body = new Body(muPoints(), muEdges(), body.getColour());
+      body = new Body(muPoints(), muFaces(), body.getColour());
       for (int i = 0; i < 60; i++) body.rotateZY();
       canvas.repaint();
     });
     cubeItem.addActionListener(e -> {
-      body = new Body(cubePoints(), cubeEdges(), body.getColour());
+      body = new Body(cubePoints(), cubeFaces(), body.getColour());
       canvas.repaint();
     });
     quitItem.addActionListener(e -> System.exit(0));
@@ -190,27 +190,51 @@ public class Simple3D extends JFrame {
     return points;
   }
 
-  private static int[][] muEdges() {
-    int[][] edges = new int[55][2];
+  /**
+   * Returns the faces of the MU body.
+   *
+   * Face winding is chosen so that the cross-product of the first two edge vectors
+   * yields an outward-facing normal (used for flat shading).
+   *
+   * The MU extrusion has:
+   *   - One back face  (z=+25, normal points +z, away from viewer)
+   *   - One front face (z=−25, normal points −z, toward viewer)
+   *   - 18 side quad faces connecting corresponding front/back edges
+   */
+  private static int[][] muFaces() {
+    int[][] faces = new int[20][];
 
+    // Back face (z=+25): winding gives outward normal in +z
+    faces[0] = new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
+
+    // Front face (z=−25): reversed winding gives outward normal in −z
+    faces[1] = new int[]{18, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19};
+
+    // Side quads: winding {i+1, i, i+18, i+19} gives outward normal
     for (int i = 0; i < 17; i++) {
-      edges[i][0] = i;
-      edges[i][1] = i + 1;
+      faces[2 + i] = new int[]{i + 1, i, i + 18, i + 19};
     }
-    for (int i = 18; i < 35; i++) {
-      edges[i][0] = i;
-      edges[i][1] = i + 1;
-    }
-    for (int i = 35; i < 53; i++) {
-      edges[i][0] = i - 35;
-      edges[i][1] = i - 17;
-    }
-    edges[53][0] = 17;
-    edges[53][1] = 0;
-    edges[54][0] = 35;
-    edges[54][1] = 18;
+    // Closing side quad (edge 17→0)
+    faces[19] = new int[]{0, 17, 35, 18};
 
-    return edges;
+    return faces;
+  }
+
+  /**
+   * Returns the faces of the cube body.
+   *
+   * Winding is chosen so that the cross-product of the first two edge vectors
+   * yields an outward-facing normal for each face.
+   */
+  private static int[][] cubeFaces() {
+    return new int[][]{
+        {0, 1, 2, 3},  // front face  (z=−90, normal −z, toward viewer)
+        {4, 7, 6, 5},  // back face   (z=+90, normal +z, away from viewer)
+        {0, 3, 7, 4},  // left face   (x=−90, normal −x)
+        {1, 5, 6, 2},  // right face  (x=+90, normal +x)
+        {0, 4, 5, 1},  // top face    (y=+90, normal +y)
+        {2, 6, 7, 3}   // bottom face (y=−90, normal −y)
+    };
   }
 
   private static Point3D[] cubePoints() {
@@ -234,3 +258,4 @@ public class Simple3D extends JFrame {
   }
 
 }
+
