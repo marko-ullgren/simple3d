@@ -43,7 +43,7 @@ public class Simple3D {
   private double zoom = 1.0;
   private Timer animationTimer;
 
-  private static final double FRICTION        = 0.95;
+  private static final double FRICTION        = 0.995;
   private static final double STOP_THRESHOLD  = 0.1;
 
   public static void main(String[] args) {
