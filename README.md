@@ -1,18 +1,52 @@
 # simple3d
 
-This repository holds a vintage Java 1.1 application originally written by me in January 1998. Gently refactored in August 2020 from an applet to an application, also simple maven build added. Code also slightly reformatted and some JavaDocs inserted. Did not fix depracated code to maintain that 1990's feeling :)
+A 3D viewer that renders an interactive rotating solid body. Originally written by Marko Ullgren in January 1998 as a Java 1.1 applet and gently converted to a standalone application in August 2020. The repository now contains two packages side by side: the untouched vintage original and a fully modernised rewrite.
 
-## How to compile:
+---
 
-`mvn compile`
+## Packages
 
-## How to run:
+### `com.ullgren.vintage.simple3d` — the 1998 original
 
-`mvn exec:java`
+A preserved piece of 1990s Java. Deliberately left as-is, including deprecated AWT APIs, Finnish variable names, and the classic inability to close the window without killing the process. Run it to feel the era.
 
-## Known issues
+### `com.ullgren.modern.simple3d` — the modernised rewrite
 
-* Much of the used APIs are depracated. Some of them were depracated even in 1998
-* Event handling is naive and using the depracated API. Oh well. As a result for example the frame cannot be closed normally but the process needs to be killed instead
-* Much of the naming and commenting is in Finnish. Looks silly.
-* I would do the OO design much differently today
+A from-scratch rewrite targeting Java 21, keeping the same geometry and interaction model but replacing everything else:
+
+- **Swing** instead of AWT (`JFrame`, `JPanel`, `JMenuBar`, `Timer`)
+- **EDT-safe initialisation** via `EventQueue.invokeLater()`
+- **Proper window close** — the × button works
+- **English identifiers** throughout (`Point3D`, `Body`, `Simple3D`, `rotateXZ`, …)
+- **Resizable window** with content that scales proportionally
+- **Solid rendering** with flat shading and hidden-surface removal:
+  - Back-face culling discards faces pointing away from the viewer
+  - Diffuse + ambient flat shading based on each face's normal vs. the view direction
+  - Side faces are fan-triangulated and sorted back-to-front (painter's algorithm)
+  - The non-convex cap face is drawn last — geometrically guaranteed to be in front of any side face it overlaps
+
+---
+
+## How to compile
+
+```
+mvn compile
+```
+
+## How to run
+
+**Modern app (Java 21, solid rendering):**
+```
+mvn exec:exec@modern
+```
+
+**Vintage app (Java 1.1 style):**
+```
+mvn exec:java@vintage
+```
+
+## Controls
+
+- **Click and drag** in a quadrant to spin the object
+- **Body menu** — switch between the MU logo and a cube
+- **Colour menu** — change the object colour
