@@ -40,6 +40,7 @@ public class Simple3D {
   private int canvasHeight = HEIGHT;
   private int angularMomentumXZ;
   private int angularMomentumYZ;
+  private double zoom = 1.0;
   private Timer animationTimer;
 
   public static void main(String[] args) {
@@ -110,7 +111,7 @@ public class Simple3D {
       @Override
       protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        double scale = Math.min(canvasWidth, canvasHeight)
+        double scale = zoom * Math.min(canvasWidth, canvasHeight)
             / (double) Math.min(Simple3D.WIDTH, Simple3D.HEIGHT);
         body.draw(g, canvasWidth / 2, canvasHeight / 2, scale);
       }
@@ -147,6 +148,12 @@ public class Simple3D {
           startAnimation();
         }
       }
+    });
+
+    panel.addMouseWheelListener(e -> {
+      zoom *= Math.pow(1.1, -e.getPreciseWheelRotation());
+      zoom = Math.max(0.1, Math.min(zoom, 10.0));
+      panel.repaint();
     });
 
     panel.setBackground(Color.black);
