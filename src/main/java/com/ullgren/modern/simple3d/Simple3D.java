@@ -14,116 +14,107 @@ import javax.swing.JPanel;
 import javax.swing.Timer;
 
 /**
- * Sovellus Simple3D piirtää ruudulle kolmiulotteisen kappaleen, joka pyörii. Pyörimisen
- * suuntaa voidaan muuttaa klikkaamalla kappaletta sen eri kohdista ja kappaleen väriä seka muotoa
- * voidaan muuttaa asianomaisista valikoista
+ * Simple3D renders a three-dimensional wireframe body that rotates on screen. Clicking different
+ * parts of the canvas changes the rotation direction. Body shape and colour can be changed via the
+ * menus.
  * <p>
- * Sovelluksen Simple3D ja siihen liittyvat luokat Piste ja Kappale on kirjoittanut tammikuussa
- * 1998. Minimaalisesti refaktoroitu ja viety Githubiin elokuussa 2020.
+ * Originally written in January 1998 by Marko Ullgren. Minimally refactored and published to
+ * GitHub in August 2020. Modernized to Java 21 Swing in 2025.
  * <p>
  * (c) Marko Ullgren 1997-1998
  */
 public class Simple3D extends JFrame {
 
-  static final int LEVEYS = 350;    // ikkunan leveys
-  static final int KORKEUS = 375;   // ikkunan korkeus
+  static final int WIDTH = 350;
+  static final int HEIGHT = 375;
 
-  static final int kx = LEVEYS / 2;  // ikkunan keskikohta
-  static final int ky = KORKEUS / 2;
+  static final int CENTER_X = WIDTH / 2;
+  static final int CENTER_Y = HEIGHT / 2;
 
-  private Kappale kpl;              // näytettävä Kappale
-  private int Lxz, Lyz;            // systeemin liikemaaramomentti y- ja x- akseleiden suhteen
+  /** Minimum pixel distance from centre required for a click to affect rotation. */
+  static final int SENSITIVITY = 50;
 
-  private Timer animTimer;          // animaation ajastin
-  private JPanel canvas;            // piirtoalue
+  private Body body;
+  private int angularMomentumXZ, angularMomentumYZ;
+
+  private Timer animationTimer;
+  private JPanel canvas;
 
   public static void main(String[] args) {
     EventQueue.invokeLater(() -> new Simple3D().init());
   }
 
   public void init() {
-
-    // luodaan uusi Kappale:
-    kpl = new Kappale(muPisteet(), muViivat(), Color.blue);
-
-    // käännetään kappale oikein pain:
+    body = new Body(muPoints(), muEdges(), Color.blue);
     for (int i = 0; i < 60; i++) {
-      kpl.kaannaZY();
+      body.rotateZY();
     }
 
-    // Avataan uusi ikkuna sovellusta varten
     this.setTitle("A Simple 3D application (c) Marko Ullgren 1998");
     this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     this.setResizable(false);
 
-    // Asetetaan ikkunan GUI-komponentit paikoilleen
-    JMenuBar valikkorivi = new JMenuBar();
-    this.setJMenuBar(valikkorivi);
+    JMenuBar menuBar = new JMenuBar();
+    this.setJMenuBar(menuBar);
 
-    JMenu kappaleet = new JMenu("Body");
-    valikkorivi.add(kappaleet);
+    JMenu bodyMenu = new JMenu("Body");
+    menuBar.add(bodyMenu);
     JMenuItem muItem = new JMenuItem("MU");
     JMenuItem cubeItem = new JMenuItem("Cube");
     JMenuItem quitItem = new JMenuItem("Quit");
-    kappaleet.add(muItem);
-    kappaleet.add(cubeItem);
-    kappaleet.addSeparator();
-    kappaleet.add(quitItem);
+    bodyMenu.add(muItem);
+    bodyMenu.add(cubeItem);
+    bodyMenu.addSeparator();
+    bodyMenu.add(quitItem);
 
-    JMenu variMenu = new JMenu("Colour");
-    valikkorivi.add(variMenu);
+    JMenu colourMenu = new JMenu("Colour");
+    menuBar.add(colourMenu);
     JMenuItem blueItem = new JMenuItem("Blue");
     JMenuItem redItem = new JMenuItem("Red");
     JMenuItem greenItem = new JMenuItem("Green");
-    variMenu.add(blueItem);
-    variMenu.add(redItem);
-    variMenu.add(greenItem);
+    colourMenu.add(blueItem);
+    colourMenu.add(redItem);
+    colourMenu.add(greenItem);
 
-    // vaihdetaan kappaleen väriä tarvittaessa:
-    blueItem.addActionListener(e -> { kpl.vaihdaVari(Color.blue); canvas.repaint(); });
-    redItem.addActionListener(e -> { kpl.vaihdaVari(Color.red); canvas.repaint(); });
-    greenItem.addActionListener(e -> { kpl.vaihdaVari(Color.green); canvas.repaint(); });
+    blueItem.addActionListener(e -> { body.setColour(Color.blue); canvas.repaint(); });
+    redItem.addActionListener(e -> { body.setColour(Color.red); canvas.repaint(); });
+    greenItem.addActionListener(e -> { body.setColour(Color.green); canvas.repaint(); });
 
-    // vaihdetaan kappaletta tarvittaessa:
     muItem.addActionListener(e -> {
-      kpl = new Kappale(muPisteet(), muViivat(), kpl.vari());
-      for (int i = 0; i < 60; i++) kpl.kaannaZY();
+      body = new Body(muPoints(), muEdges(), body.getColour());
+      for (int i = 0; i < 60; i++) body.rotateZY();
       canvas.repaint();
     });
     cubeItem.addActionListener(e -> {
-      kpl = new Kappale(cubePisteet(), cubeViivat(), kpl.vari());
+      body = new Body(cubePoints(), cubeEdges(), body.getColour());
       canvas.repaint();
     });
     quitItem.addActionListener(e -> System.exit(0));
 
-    // Piirtoalue mustalla taustalla
     canvas = new JPanel() {
       @Override
       protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        kpl.piirra(g, kx, ky);
+        body.draw(g, CENTER_X, CENTER_Y);
       }
     };
     canvas.setBackground(Color.black);
     canvas.setForeground(Color.white);
-    canvas.setPreferredSize(new Dimension(LEVEYS, KORKEUS));
+    canvas.setPreferredSize(new Dimension(WIDTH, HEIGHT));
 
-    // Tutkitaan, missä kohtaa ruutua on painettu hiirtä ja
-    // muutetaan kappaleen liikemäärämomenttia sen mukaan.
     canvas.addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
-        boolean kaynnistetaan = (Lxz == 0 && Lyz == 0);
-        int herkkyys = 50; // vaikuttavan klikkauksen etäisyys keskeltä
+        boolean wasIdle = (angularMomentumXZ == 0 && angularMomentumYZ == 0);
 
-        if (e.getX() < kx - herkkyys) Lxz--;
-        if (e.getX() > kx + herkkyys) Lxz++;
-        if (e.getY() < ky - herkkyys) Lyz++;
-        if (e.getY() > ky + herkkyys) Lyz--;
+        if (e.getX() < CENTER_X - SENSITIVITY) angularMomentumXZ--;
+        if (e.getX() > CENTER_X + SENSITIVITY) angularMomentumXZ++;
+        if (e.getY() < CENTER_Y - SENSITIVITY) angularMomentumYZ++;
+        if (e.getY() > CENTER_Y + SENSITIVITY) angularMomentumYZ--;
 
-        if (Lyz == 0 && Lxz == 0) {
+        if (angularMomentumYZ == 0 && angularMomentumXZ == 0) {
           stopAnimation();
-        } else if (kaynnistetaan) {
+        } else if (wasIdle) {
           startAnimation();
         }
       }
@@ -135,104 +126,94 @@ public class Simple3D extends JFrame {
   }
 
   private void startAnimation() {
-    if (animTimer == null) {
-      animTimer = new Timer(40, e -> {
-        // Tutkitaan liikemäärämomenttia ja käännetään kappaletta sen mukaan
-        for (int i = 0; i < Lxz; i++) kpl.kaannaXZ();
-        for (int i = 0; i < Lyz; i++) kpl.kaannaZY();
-        if (Lxz < 0) for (int i = 0; i > Lxz; i--) kpl.kaannaZX();
-        if (Lyz < 0) for (int i = 0; i > Lyz; i--) kpl.kaannaYZ();
+    if (animationTimer == null) {
+      animationTimer = new Timer(40, e -> {
+        for (int i = 0; i < angularMomentumXZ; i++) body.rotateXZ();
+        for (int i = 0; i < angularMomentumYZ; i++) body.rotateZY();
+        if (angularMomentumXZ < 0) for (int i = 0; i > angularMomentumXZ; i--) body.rotateZX();
+        if (angularMomentumYZ < 0) for (int i = 0; i > angularMomentumYZ; i--) body.rotateYZ();
         canvas.repaint();
       });
     }
-    animTimer.start();
+    animationTimer.start();
   }
 
   private void stopAnimation() {
-    Lxz = Lyz = 0;
-    if (animTimer != null) {
-      animTimer.stop();
+    angularMomentumXZ = angularMomentumYZ = 0;
+    if (animationTimer != null) {
+      animationTimer.stop();
     }
   }
 
-  private static Piste[] muPisteet() {
-    // palautetaan arvona MU-kappaleen pisteistä muodostuva taulukko
+  private static Point3D[] muPoints() {
+    Point3D[] points = new Point3D[36];
 
-    Piste[] points = new Piste[36];
-
-    points[0] = new Piste(-150, -90, 25);
-    points[1] = new Piste(-90, -90, 25);
-    points[2] = new Piste(-90, 30, 25);
-    points[3] = new Piste(-60, 0, 25);
-    points[4] = new Piste(-30, 30, 25);
-    points[5] = new Piste(-30, -60, 25);
-    points[6] = new Piste(0, -90, 25);
-    points[7] = new Piste(90, -90, 25);
-    points[8] = new Piste(120, -60, 25);
-    points[9] = new Piste(120, 90, 25);
-    points[10] = new Piste(60, 90, 25);
-    points[11] = new Piste(60, -30, 25);
-    points[12] = new Piste(30, -30, 25);
-    points[13] = new Piste(30, 90, 25);
-    points[14] = new Piste(-30, 90, 25);
-    points[15] = new Piste(-60, 60, 25);
-    points[16] = new Piste(-90, 90, 25);
-    points[17] = new Piste(-150, 90, 25);
+    points[0] = new Point3D(-150, -90, 25);
+    points[1] = new Point3D(-90, -90, 25);
+    points[2] = new Point3D(-90, 30, 25);
+    points[3] = new Point3D(-60, 0, 25);
+    points[4] = new Point3D(-30, 30, 25);
+    points[5] = new Point3D(-30, -60, 25);
+    points[6] = new Point3D(0, -90, 25);
+    points[7] = new Point3D(90, -90, 25);
+    points[8] = new Point3D(120, -60, 25);
+    points[9] = new Point3D(120, 90, 25);
+    points[10] = new Point3D(60, 90, 25);
+    points[11] = new Point3D(60, -30, 25);
+    points[12] = new Point3D(30, -30, 25);
+    points[13] = new Point3D(30, 90, 25);
+    points[14] = new Point3D(-30, 90, 25);
+    points[15] = new Point3D(-60, 60, 25);
+    points[16] = new Point3D(-90, 90, 25);
+    points[17] = new Point3D(-150, 90, 25);
     for (int i = 18; i < 36; i++) {
-      points[i] = new Piste(points[i - 18]);
+      points[i] = new Point3D(points[i - 18]);
       points[i].z = -25;
     }
     return points;
   }
 
-  private static int[][] muViivat() {
-    // palautetaan arvona MU-kappaleen viivoista muodostuva taulukko
-
-    int[][] viivat = new int[55][2];
+  private static int[][] muEdges() {
+    int[][] edges = new int[55][2];
 
     for (int i = 0; i < 17; i++) {
-      viivat[i][0] = i;
-      viivat[i][1] = i + 1;
+      edges[i][0] = i;
+      edges[i][1] = i + 1;
     }
     for (int i = 18; i < 35; i++) {
-      viivat[i][0] = i;
-      viivat[i][1] = i + 1;
+      edges[i][0] = i;
+      edges[i][1] = i + 1;
     }
     for (int i = 35; i < 53; i++) {
-      viivat[i][0] = i - 35;
-      viivat[i][1] = i - 17;
+      edges[i][0] = i - 35;
+      edges[i][1] = i - 17;
     }
-    viivat[53][0] = 17;
-    viivat[53][1] = 0;
-    viivat[54][0] = 35;
-    viivat[54][1] = 18;
+    edges[53][0] = 17;
+    edges[53][1] = 0;
+    edges[54][0] = 35;
+    edges[54][1] = 18;
 
-    return viivat;
+    return edges;
   }
 
-  private static Piste[] cubePisteet() {
-    // palautetaan arvona kuution pisteistä muodostuva taulukko
+  private static Point3D[] cubePoints() {
+    Point3D[] points = new Point3D[8];
 
-    Piste[] points = new Piste[8];
-
-    points[0] = new Piste(-90, 90, -90);
-    points[1] = new Piste(90, 90, -90);
-    points[2] = new Piste(90, -90, -90);
-    points[3] = new Piste(-90, -90, -90);
-    points[4] = new Piste(-90, 90, 90);
-    points[5] = new Piste(90, 90, 90);
-    points[6] = new Piste(90, -90, 90);
-    points[7] = new Piste(-90, -90, 90);
+    points[0] = new Point3D(-90, 90, -90);
+    points[1] = new Point3D(90, 90, -90);
+    points[2] = new Point3D(90, -90, -90);
+    points[3] = new Point3D(-90, -90, -90);
+    points[4] = new Point3D(-90, 90, 90);
+    points[5] = new Point3D(90, 90, 90);
+    points[6] = new Point3D(90, -90, 90);
+    points[7] = new Point3D(-90, -90, 90);
 
     return points;
   }
 
-  private static int[][] cubeViivat() {
-    // palautetaan arvona kuution viivoista muodostuva taulukko
-
-    int[][] viivat = {{0, 1}, {1, 2}, {2, 3}, {3, 0}, {4, 5}, {5, 6}, {6, 7}, {7, 4},
+  private static int[][] cubeEdges() {
+    return new int[][]{{0, 1}, {1, 2}, {2, 3}, {3, 0}, {4, 5}, {5, 6}, {6, 7}, {7, 4},
         {0, 4}, {1, 5}, {2, 6}, {3, 7}};
-    return viivat;
   }
 
 }
