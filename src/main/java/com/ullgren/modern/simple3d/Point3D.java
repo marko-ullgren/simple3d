@@ -17,7 +17,7 @@ public class Point3D {
   static final double SIN = Math.sin(ROTATION_ANGLE);
   static final double COS = Math.cos(ROTATION_ANGLE);
 
-  public double x, y, z;
+  double x, y, z;
 
   Point3D() {
     this.x = 0;
