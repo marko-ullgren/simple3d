@@ -44,8 +44,9 @@ public class Body {
    * @param g       Graphics context to draw on
    * @param centerX x-coordinate of the canvas centre
    * @param centerY y-coordinate of the canvas centre
+   * @param scale   scale factor relative to the default window size
    */
-  public void draw(Graphics g, int centerX, int centerY) {
+  public void draw(Graphics g, int centerX, int centerY, double scale) {
     for (int i = 0; i < edges.length; i++) {
       g.setColor(colour);
       double x0 = points[edges[i][0]].x;
@@ -54,10 +55,10 @@ public class Body {
       double y1 = points[edges[i][1]].y;
 
       // Perspective projection: distant points converge toward the origin
-      x0 = x0 - (x0 * PROJECTION_FACTOR * points[edges[i][0]].z) + centerX;
-      x1 = x1 - (x1 * PROJECTION_FACTOR * points[edges[i][1]].z) + centerX;
-      y0 = y0 - (y0 * PROJECTION_FACTOR * points[edges[i][0]].z) + centerY;
-      y1 = y1 - (y1 * PROJECTION_FACTOR * points[edges[i][1]].z) + centerY;
+      x0 = scale * (x0 - (x0 * PROJECTION_FACTOR * points[edges[i][0]].z)) + centerX;
+      x1 = scale * (x1 - (x1 * PROJECTION_FACTOR * points[edges[i][1]].z)) + centerX;
+      y0 = scale * (y0 - (y0 * PROJECTION_FACTOR * points[edges[i][0]].z)) + centerY;
+      y1 = scale * (y1 - (y1 * PROJECTION_FACTOR * points[edges[i][1]].z)) + centerY;
 
       // Darken edges that are further away (behind the body)
       if (points[edges[i][0]].z > 60 && points[edges[i][1]].z > 60) {
