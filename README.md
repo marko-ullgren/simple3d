@@ -1,6 +1,6 @@
 # simple3d
 
-A 3D viewer that renders an interactive rotating solid body. Originally written by Marko Ullgren in January 1998 as a Java 1.1 applet and gently converted to a standalone application in August 2020. The repository now contains two packages side by side: the untouched vintage original and a fully modernised rewrite.
+A 3D viewer that renders an interactive rotating solid body. Originally written by Marko Ullgren in January 1998 as a Java 1.1 applet displaying a **wireframe** object, and gently converted to a standalone application in August 2020. The repository now contains two packages side by side: the untouched vintage wireframe original and a fully modernised rewrite that renders a **solid body** with flat shading and hidden-surface removal. The modernisation was done by GitHub Copilot with Marko providing the instructions.
 
 ---
 
@@ -17,7 +17,7 @@ A from-scratch rewrite targeting Java 21, keeping the same geometry and interact
 - **Swing** instead of AWT (`JFrame`, `JPanel`, `JMenuBar`, `Timer`)
 - **EDT-safe initialisation** via `EventQueue.invokeLater()`
 - **Proper window close** — the × button works
-- **English identifiers** throughout (`Point3D`, `Body`, `Simple3D`, `rotateXZ`, …)
+- **English identifiers** throughout (`Point3D`, `Body`, `Simple3D`, `rotateXZ`, …) replacing the original Finnish names
 - **Resizable window** with content that scales proportionally
 - **Solid rendering** with flat shading and hidden-surface removal:
   - Back-face culling discards faces pointing away from the viewer
@@ -47,6 +47,6 @@ mvn exec:java@vintage
 
 ## Controls
 
-- **Click and drag** in a quadrant to spin the object
+- **Click** in a quadrant to spin the object in that direction; click again to add more momentum or in the opposite quadrant to slow it down
 - **Body menu** — switch between the MU logo and a cube
 - **Colour menu** — change the object colour
