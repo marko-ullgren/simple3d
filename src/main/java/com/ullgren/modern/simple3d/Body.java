@@ -139,6 +139,26 @@ public class Body {
   public void rotateZX() { for (Point3D p : points) p.rotateZX(); }
   public void rotateZY() { for (Point3D p : points) p.rotateZY(); }
 
+  /** Rotates all points by {@code angle} radians in the XZ plane. Negative angles rotate in reverse. */
+  public void rotateXZ(double angle) {
+    double sin = Math.sin(angle), cos = Math.cos(angle);
+    for (Point3D p : points) {
+      double t = p.x;
+      p.x = p.x * cos - p.z * sin;
+      p.z = t   * sin + p.z * cos;
+    }
+  }
+
+  /** Rotates all points by {@code angle} radians in the ZY plane. Negative angles rotate in reverse. */
+  public void rotateZY(double angle) {
+    double sin = Math.sin(angle), cos = Math.cos(angle);
+    for (Point3D p : points) {
+      double t = p.z;
+      p.z = p.z * cos - p.y * sin;
+      p.y = t   * sin + p.y * cos;
+    }
+  }
+
   /** For testing only — returns the number of points in this body. */
   int pointCount() { return points.length; }
 
