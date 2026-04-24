@@ -2,6 +2,12 @@ package com.ullgren.modern.simple3d;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,16 +32,6 @@ public class Body {
     this.points = points;
     this.faces = faces;
     this.colour = colour;
-  }
-
-  /** Creates the MU logo body with the given colour. */
-  public static Body mu(Color colour) {
-    return new Body(muPoints(), muFaces(), colour);
-  }
-
-  /** Creates a cube body with the given colour. */
-  public static Body cube(Color colour) {
-    return new Body(cubePoints(), cubeFaces(), colour);
   }
 
   public void setColour(Color newColour) {
@@ -144,80 +140,93 @@ public class Body {
   public void rotateZY() { for (Point3D p : points) p.rotateZY(); }
 
   // -------------------------------------------------------------------------
-  // Shape definitions
+  // Shape loading
   // -------------------------------------------------------------------------
 
-  private static Point3D[] muPoints() {
-    Point3D[] p = new Point3D[36];
-    p[0]  = new Point3D(-150, -90, 25);
-    p[1]  = new Point3D( -90, -90, 25);
-    p[2]  = new Point3D( -90,  30, 25);
-    p[3]  = new Point3D( -60,   0, 25);
-    p[4]  = new Point3D( -30,  30, 25);
-    p[5]  = new Point3D( -30, -60, 25);
-    p[6]  = new Point3D(   0, -90, 25);
-    p[7]  = new Point3D(  90, -90, 25);
-    p[8]  = new Point3D( 120, -60, 25);
-    p[9]  = new Point3D( 120,  90, 25);
-    p[10] = new Point3D(  60,  90, 25);
-    p[11] = new Point3D(  60, -30, 25);
-    p[12] = new Point3D(  30, -30, 25);
-    p[13] = new Point3D(  30,  90, 25);
-    p[14] = new Point3D( -30,  90, 25);
-    p[15] = new Point3D( -60,  60, 25);
-    p[16] = new Point3D( -90,  90, 25);
-    p[17] = new Point3D(-150,  90, 25);
-    for (int i = 18; i < 36; i++) {
-      p[i] = new Point3D(p[i - 18]);
-      p[i].z = -25;
-    }
-    return p;
-  }
-
   /**
-   * Face winding is chosen so that the cross-product of the first two edge vectors
-   * yields an outward-facing normal.
-   * <ul>
-   *   <li>Back face  (z=+25): normal +z, away from viewer</li>
-   *   <li>Front face (z=-25): normal -z, toward viewer</li>
-   *   <li>18 side quads connecting corresponding front/back edges</li>
-   * </ul>
+   * Loads a body from a classpath resource in the {@code .body} file format.
+   * <p>
+   * Format:
+   * <pre>
+   * points
+   * x y z
+   * ...
+   *
+   * faces
+   * i0 i1 i2 ...
+   * ...
+   * </pre>
+   * Lines starting with {@code #} and blank lines are ignored.
+   *
+   * @throws UncheckedIOException   if the resource cannot be read
+   * @throws IllegalArgumentException if the file is malformed
    */
-  private static int[][] muFaces() {
-    int[][] faces = new int[20][];
-    faces[0] = new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
-    faces[1] = new int[]{18, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19};
-    for (int i = 0; i < 17; i++) {
-      faces[2 + i] = new int[]{i + 1, i, i + 18, i + 19};
+  public static Body loadBody(String resource, Color colour) {
+    InputStream stream = Body.class.getResourceAsStream(resource);
+    if (stream == null) {
+      throw new IllegalArgumentException("Shape resource not found: " + resource);
     }
-    faces[19] = new int[]{0, 17, 35, 18};
-    return faces;
-  }
+    try (BufferedReader reader = new BufferedReader(
+        new InputStreamReader(stream, StandardCharsets.UTF_8))) {
 
-  private static Point3D[] cubePoints() {
-    return new Point3D[]{
-        new Point3D(-90,  90, -90),
-        new Point3D( 90,  90, -90),
-        new Point3D( 90, -90, -90),
-        new Point3D(-90, -90, -90),
-        new Point3D(-90,  90,  90),
-        new Point3D( 90,  90,  90),
-        new Point3D( 90, -90,  90),
-        new Point3D(-90, -90,  90)
-    };
-  }
+      List<Point3D> points = new ArrayList<>();
+      List<int[]>   faces  = new ArrayList<>();
+      String section = null;
+      String line;
+      int lineNum = 0;
 
-  /**
-   * Winding gives outward-facing normals for each face.
-   */
-  private static int[][] cubeFaces() {
-    return new int[][]{
-        {0, 1, 2, 3},  // front  (z=-90, normal -z)
-        {4, 7, 6, 5},  // back   (z=+90, normal +z)
-        {0, 3, 7, 4},  // left   (x=-90, normal -x)
-        {1, 5, 6, 2},  // right  (x=+90, normal +x)
-        {0, 4, 5, 1},  // top    (y=+90, normal +y)
-        {2, 6, 7, 3}   // bottom (y=-90, normal -y)
-    };
+      while ((line = reader.readLine()) != null) {
+        lineNum++;
+        line = line.strip();
+        if (line.isEmpty() || line.startsWith("#")) continue;
+
+        if (line.equals("points") || line.equals("faces")) {
+          section = line;
+          continue;
+        }
+        if (section == null) {
+          throw new IllegalArgumentException(
+              resource + ":" + lineNum + ": data before any section header");
+        }
+
+        String[] tokens = line.split("\\s+");
+        if (section.equals("points")) {
+          if (tokens.length != 3) {
+            throw new IllegalArgumentException(
+                resource + ":" + lineNum + ": point must have exactly 3 coordinates");
+          }
+          points.add(new Point3D(
+              Double.parseDouble(tokens[0]),
+              Double.parseDouble(tokens[1]),
+              Double.parseDouble(tokens[2])));
+        } else {
+          if (tokens.length < 3) {
+            throw new IllegalArgumentException(
+                resource + ":" + lineNum + ": face must have at least 3 indices");
+          }
+          int[] indices = new int[tokens.length];
+          for (int i = 0; i < tokens.length; i++) {
+            indices[i] = Integer.parseInt(tokens[i]);
+            if (indices[i] < 0 || indices[i] >= points.size()) {
+              throw new IllegalArgumentException(
+                  resource + ":" + lineNum + ": face index " + indices[i]
+                  + " out of range (0.." + (points.size() - 1) + ")");
+            }
+          }
+          faces.add(indices);
+        }
+      }
+
+      if (points.isEmpty()) {
+        throw new IllegalArgumentException(resource + ": no points defined");
+      }
+      if (faces.isEmpty()) {
+        throw new IllegalArgumentException(resource + ": no faces defined");
+      }
+      return new Body(points.toArray(new Point3D[0]), faces.toArray(new int[0][]), colour);
+
+    } catch (IOException e) {
+      throw new UncheckedIOException("Failed to read shape resource: " + resource, e);
+    }
   }
 }

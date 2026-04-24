@@ -31,6 +31,12 @@ public class Point3D {
     this.z = z;
   }
 
+  Point3D(double x, double y, double z) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+
   Point3D(Point3D source) {
     this.x = source.x;
     this.y = source.y;
