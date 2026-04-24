@@ -139,6 +139,12 @@ public class Body {
   public void rotateZX() { for (Point3D p : points) p.rotateZX(); }
   public void rotateZY() { for (Point3D p : points) p.rotateZY(); }
 
+  /** For testing only — returns the number of points in this body. */
+  int pointCount() { return points.length; }
+
+  /** For testing only — returns the number of faces in this body. */
+  int faceCount() { return faces.length; }
+
   // -------------------------------------------------------------------------
   // Shape loading
   // -------------------------------------------------------------------------

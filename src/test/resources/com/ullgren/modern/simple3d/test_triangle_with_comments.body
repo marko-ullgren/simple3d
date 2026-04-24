@@ -1,0 +1,15 @@
+# This file tests that comments and blank lines are ignored
+
+# Section header below:
+points
+
+# These are the three points:
+   0   0 0
+   0 100 0
+ 100   0 0
+
+# Face section:
+faces
+
+# The only face:
+0 1 2

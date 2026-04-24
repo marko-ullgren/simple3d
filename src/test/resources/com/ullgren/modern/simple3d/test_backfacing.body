@@ -1,0 +1,7 @@
+# Triangle facing away from viewer (nz > 0, will be back-face culled)
+points
+   0   0 0
+ 100   0 0
+   0 100 0
+faces
+0 1 2

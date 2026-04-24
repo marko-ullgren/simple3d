@@ -1,0 +1,10 @@
+# Hexagon cap polygon (6 vertices, >4, facing viewer)
+points
+  60   0 0
+  30  52 0
+ -30  52 0
+ -60   0 0
+ -30 -52 0
+  30 -52 0
+faces
+0 1 2 3 4 5
