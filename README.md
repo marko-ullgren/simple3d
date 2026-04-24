@@ -69,5 +69,6 @@ mvn exec:java@vintage
 ## Controls
 
 - **Click** in a quadrant to spin the object in that direction; click again to add more momentum or in the opposite quadrant to slow it down
+- **Scroll wheel** to zoom in and out (zoom range: 0.1× – 10×)
 - **Body menu** — switch between the MU logo and a cube
 - **Colour menu** — change the object colour
