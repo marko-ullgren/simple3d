@@ -33,6 +33,27 @@ A from-scratch rewrite targeting Java 21, keeping the same geometry and interact
 mvn compile
 ```
 
+## How to run tests
+
+Tests cover `Point3D` (constructors, rotation invariants, round-trips) and `Body` (loading, error handling, draw branch coverage, rotation):
+
+```
+mvn test
+```
+
+> **Note:** If `mvn test` fails because `maven-surefire-plugin` dependencies are not cached locally, run the tests directly using the JVM that Maven uses:
+> ```
+> JAVA=$(mvn --version 2>/dev/null | grep "runtime:" | sed 's/.*runtime: //')
+> mvn test-compile -q && \
+> $JAVA/bin/java \
+>   -cp "target/classes:target/test-classes:\
+> $HOME/.m2/repository/junit/junit/4.11/junit-4.11.jar:\
+> $HOME/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar" \
+>   org.junit.runner.JUnitCore \
+>   com.ullgren.modern.simple3d.Point3DTest \
+>   com.ullgren.modern.simple3d.BodyTest
+> ```
+
 ## How to run
 
 **Modern app (Java 21, solid rendering):**
