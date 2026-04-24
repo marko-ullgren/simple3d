@@ -12,8 +12,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.release>21</maven.compiler.release>
   </properties>
 
   <dependencies>
@@ -84,5 +83,50 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.4.0</version>
+        <executions>
+          <execution>
+            <id>modern</id>
+            <goals><goal>exec</goal></goals>
+            <configuration>
+              <executable>${java.home}/bin/java${script.extension}</executable>
+              <arguments>
+                <argument>-classpath</argument>
+                <classpath/>
+                <argument>com.ullgren.modern.simple3d.Simple3D</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+        <configuration>
+          <mainClass>com.ullgren.vintage.simple3d.Simple3D</mainClass>
+        </configuration>
+      </plugin>
+    </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>windows</id>
+      <activation>
+        <os><family>windows</family></os>
+      </activation>
+      <properties>
+        <script.extension>.exe</script.extension>
+      </properties>
+    </profile>
+    <profile>
+      <id>unix</id>
+      <activation>
+        <os><family>unix</family></os>
+      </activation>
+      <properties>
+        <script.extension></script.extension>
+      </properties>
+    </profile>
+  </profiles>
+
 </project>
