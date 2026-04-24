@@ -126,7 +126,7 @@ public class BodyTest {
   public void draw_withTriangleFace_doesNotThrow() {
     Body body = Body.loadBody(RES + "test_triangle.body", Color.blue);
     Graphics g = newGraphics(400, 400);
-    body.draw(g, 200, 200, 1.0);
+    body.draw(g, 200, 200, 1.0, 400, 400);
     g.dispose();
   }
 
@@ -134,7 +134,7 @@ public class BodyTest {
   public void draw_withQuadFace_doesNotThrow() {
     Body body = Body.loadBody(RES + "test_quad.body", Color.blue);
     Graphics g = newGraphics(400, 400);
-    body.draw(g, 200, 200, 1.0);
+    body.draw(g, 200, 200, 1.0, 400, 400);
     g.dispose();
   }
 
@@ -142,7 +142,7 @@ public class BodyTest {
   public void draw_withCapPolygon_doesNotThrow() {
     Body body = Body.loadBody(RES + "test_cap.body", Color.blue);
     Graphics g = newGraphics(400, 400);
-    body.draw(g, 200, 200, 1.0);
+    body.draw(g, 200, 200, 1.0, 400, 400);
     g.dispose();
   }
 
@@ -150,7 +150,7 @@ public class BodyTest {
   public void draw_backFacedBody_producesNoPixels() {
     Body body = Body.loadBody(RES + "test_backfacing.body", Color.white);
     BufferedImage img = newImage(400, 400);
-    body.draw(img.createGraphics(), 200, 200, 1.0);
+    body.draw(img.createGraphics(), 200, 200, 1.0, 400, 400);
     // All pixels should remain transparent/black — nothing was drawn
     for (int y = 0; y < 400; y++) {
       for (int x = 0; x < 400; x++) {
@@ -163,7 +163,7 @@ public class BodyTest {
   public void draw_frontFacedBody_producesNonBlackPixels() {
     Body body = Body.loadBody(RES + "test_triangle.body", Color.white);
     BufferedImage img = newImage(400, 400);
-    body.draw(img.createGraphics(), 200, 200, 1.0);
+    body.draw(img.createGraphics(), 200, 200, 1.0, 400, 400);
     assertTrue("Expected some pixels to be drawn", hasNonZeroPixel(img));
   }
 
@@ -172,7 +172,7 @@ public class BodyTest {
     Body body = Body.loadBody(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
     Graphics g = newGraphics(400, 400);
-    body.draw(g, 200, 200, 1.0);
+    body.draw(g, 200, 200, 1.0, 400, 400);
     g.dispose();
   }
 
@@ -180,7 +180,7 @@ public class BodyTest {
   public void draw_cubeBody_doesNotThrow() {
     Body body = Body.loadBody(RES + "cube.body", Color.blue);
     Graphics g = newGraphics(400, 400);
-    body.draw(g, 200, 200, 1.0);
+    body.draw(g, 200, 200, 1.0, 400, 400);
     g.dispose();
   }
 
@@ -249,7 +249,7 @@ public class BodyTest {
 
   private static BufferedImage drawToImage(Body body) {
     BufferedImage img = newImage(400, 400);
-    body.draw(img.createGraphics(), 200, 200, 1.0);
+    body.draw(img.createGraphics(), 200, 200, 1.0, 400, 400);
     return img;
   }
 
