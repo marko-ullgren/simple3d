@@ -60,7 +60,7 @@ public class Simple3D {
   }
 
   private Body buildBody() {
-    Body b = Body.mu(Color.blue);
+    Body b = Body.loadBody("/com/ullgren/modern/simple3d/mu.body", Color.blue);
     for (int i = 0; i < 60; i++) b.rotateZY();
     return b;
   }
@@ -88,12 +88,12 @@ public class Simple3D {
     menuBar.add(colourMenu);
 
     muItem.addActionListener(e -> {
-      body = Body.mu(body.getColour());
+      body = Body.loadBody("/com/ullgren/modern/simple3d/mu.body", body.getColour());
       for (int i = 0; i < 60; i++) body.rotateZY();
       canvas.repaint();
     });
     cubeItem.addActionListener(e -> {
-      body = Body.cube(body.getColour());
+      body = Body.loadBody("/com/ullgren/modern/simple3d/cube.body", body.getColour());
       canvas.repaint();
     });
     quitItem.addActionListener(e -> System.exit(0));

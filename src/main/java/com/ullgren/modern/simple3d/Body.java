@@ -34,16 +34,6 @@ public class Body {
     this.colour = colour;
   }
 
-  /** Creates the MU logo body with the given colour. */
-  public static Body mu(Color colour) {
-    return loadBody("/com/ullgren/modern/simple3d/mu.body", colour);
-  }
-
-  /** Creates a cube body with the given colour. */
-  public static Body cube(Color colour) {
-    return loadBody("/com/ullgren/modern/simple3d/cube.body", colour);
-  }
-
   public void setColour(Color newColour) {
     this.colour = newColour;
   }
@@ -171,7 +161,7 @@ public class Body {
    * @throws UncheckedIOException   if the resource cannot be read
    * @throws IllegalArgumentException if the file is malformed
    */
-  private static Body loadBody(String resource, Color colour) {
+  public static Body loadBody(String resource, Color colour) {
     InputStream stream = Body.class.getResourceAsStream(resource);
     if (stream == null) {
       throw new IllegalArgumentException("Shape resource not found: " + resource);
