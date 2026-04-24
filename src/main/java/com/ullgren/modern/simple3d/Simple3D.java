@@ -28,9 +28,6 @@ public class Simple3D extends JFrame {
   static final int WIDTH = 350;
   static final int HEIGHT = 375;
 
-  static final int CENTER_X = WIDTH / 2;
-  static final int CENTER_Y = HEIGHT / 2;
-
   /** Minimum pixel distance from centre required for a click to affect rotation. */
   static final int SENSITIVITY = 50;
 
@@ -39,6 +36,8 @@ public class Simple3D extends JFrame {
 
   private Timer animationTimer;
   private JPanel canvas;
+  private int canvasWidth = WIDTH;
+  private int canvasHeight = HEIGHT;
 
   public static void main(String[] args) {
     EventQueue.invokeLater(() -> new Simple3D().init());
@@ -52,7 +51,7 @@ public class Simple3D extends JFrame {
 
     this.setTitle("A Simple 3D application (c) Marko Ullgren 1998");
     this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    this.setResizable(false);
+    this.setMinimumSize(new java.awt.Dimension(150, 150));
 
     JMenuBar menuBar = new JMenuBar();
     this.setJMenuBar(menuBar);
@@ -95,9 +94,25 @@ public class Simple3D extends JFrame {
       @Override
       protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        body.draw(g, CENTER_X, CENTER_Y);
+        int centerX = canvasWidth / 2;
+        int centerY = canvasHeight / 2;
+        double scale = Math.min(canvasWidth, canvasHeight)
+            / (double) Math.min(Simple3D.WIDTH, Simple3D.HEIGHT);
+        body.draw(g, centerX, centerY, scale);
       }
     };
+    canvas.addComponentListener(new java.awt.event.ComponentAdapter() {
+      @Override
+      public void componentResized(java.awt.event.ComponentEvent e) {
+        int w = canvas.getWidth();
+        int h = canvas.getHeight();
+        if (w > 0 && h > 0) {
+          canvasWidth = w;
+          canvasHeight = h;
+        }
+        canvas.repaint();
+      }
+    });
     canvas.setBackground(Color.black);
     canvas.setForeground(Color.white);
     canvas.setPreferredSize(new Dimension(WIDTH, HEIGHT));
@@ -106,11 +121,13 @@ public class Simple3D extends JFrame {
       @Override
       public void mousePressed(MouseEvent e) {
         boolean wasIdle = (angularMomentumXZ == 0 && angularMomentumYZ == 0);
+        int centerX = canvasWidth / 2;
+        int centerY = canvasHeight / 2;
 
-        if (e.getX() < CENTER_X - SENSITIVITY) angularMomentumXZ--;
-        if (e.getX() > CENTER_X + SENSITIVITY) angularMomentumXZ++;
-        if (e.getY() < CENTER_Y - SENSITIVITY) angularMomentumYZ++;
-        if (e.getY() > CENTER_Y + SENSITIVITY) angularMomentumYZ--;
+        if (e.getX() < centerX - SENSITIVITY) angularMomentumXZ--;
+        if (e.getX() > centerX + SENSITIVITY) angularMomentumXZ++;
+        if (e.getY() < centerY - SENSITIVITY) angularMomentumYZ++;
+        if (e.getY() > centerY + SENSITIVITY) angularMomentumYZ--;
 
         if (angularMomentumYZ == 0 && angularMomentumXZ == 0) {
           stopAnimation();
