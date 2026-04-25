@@ -23,7 +23,7 @@ import java.util.List;
  */
 public class Body {
 
-  private static final double PROJECTION_FACTOR = 0.0010;
+  private static final double PROJECTION_FACTOR = 0.001;
   private static final double AMBIENT = 0.15;
   /** Adjacent faces whose normalised normals have a dot product above this value share smooth shading. */
   private static final double SMOOTH_THRESHOLD_COS = Math.cos(Math.toRadians(60.0));
