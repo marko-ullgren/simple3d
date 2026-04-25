@@ -24,6 +24,7 @@ A from-scratch rewrite targeting Java 21, keeping the same geometry and interact
   - Diffuse + ambient flat shading based on each face's normal vs. the view direction
   - Side faces are fan-triangulated and sorted back-to-front (painter's algorithm)
   - The non-convex cap face is drawn last — geometrically guaranteed to be in front of any side face it overlaps
+- **Starfield background** — 200 stars of varying size and brightness give the illusion of the object floating in space
 
 ---
 
