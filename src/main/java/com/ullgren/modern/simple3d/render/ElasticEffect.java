@@ -1,4 +1,4 @@
-package com.ullgren.modern.simple3d;
+package com.ullgren.modern.simple3d.render;
 
 import javax.swing.Timer;
 
@@ -20,7 +20,7 @@ public class ElasticEffect {
   /** Initial inward displacement in pixels. */
   private static final float INIT_DISP   = 10f;
   /** Pixel radius of the influence region. */
-  static final int           RADIUS      = 60;
+  public static final int RADIUS = 60;
   private static final float STOP_THRESH = 0.3f;
   private static final int   TICK_MS     = 16;
 

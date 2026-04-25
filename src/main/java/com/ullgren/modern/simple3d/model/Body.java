@@ -1,4 +1,4 @@
-package com.ullgren.modern.simple3d;
+package com.ullgren.modern.simple3d.model;
 
 import java.awt.Color;
 import java.io.BufferedReader;
@@ -42,10 +42,10 @@ public class Body {
   // Package-private geometry accessors (used by Renderer)
   // -------------------------------------------------------------------------
 
-  int pointCount()          { return points.length; }
-  int faceCount()           { return faces.length; }
-  Point3D pointAt(int i)    { return points[i]; }
-  int[]   faceAt(int i)     { return faces[i]; }
+  public int     pointCount()       { return points.length; }
+  public int     faceCount()        { return faces.length; }
+  public Point3D pointAt(int i)     { return points[i]; }
+  public int[]   faceAt(int i)      { return faces[i]; }
 
   // -------------------------------------------------------------------------
   // Rotation
@@ -58,42 +58,22 @@ public class Body {
 
   /** Rotates all points by {@code angle} radians in the XZ plane. Negative angles rotate in reverse. */
   public void rotateXZ(double angle) {
-    double sin = Math.sin(angle), cos = Math.cos(angle);
-    for (Point3D p : points) {
-      double t = p.x;
-      p.x = p.x * cos - p.z * sin;
-      p.z = t   * sin + p.z * cos;
-    }
+    for (Point3D p : points) p.rotateXZ(angle);
   }
 
   /** Rotates all points by {@code angle} radians in the YZ plane. Negative angles rotate in reverse. */
   public void rotateYZ(double angle) {
-    double sin = Math.sin(angle), cos = Math.cos(angle);
-    for (Point3D p : points) {
-      double t = p.y;
-      p.y = p.y * cos - p.z * sin;
-      p.z = t   * sin + p.z * cos;
-    }
+    for (Point3D p : points) p.rotateYZ(angle);
   }
 
   /** Rotates all points by {@code angle} radians in the ZX plane. Negative angles rotate in reverse. */
   public void rotateZX(double angle) {
-    double sin = Math.sin(angle), cos = Math.cos(angle);
-    for (Point3D p : points) {
-      double t = p.z;
-      p.z = p.z * cos - p.x * sin;
-      p.x = t   * sin + p.x * cos;
-    }
+    for (Point3D p : points) p.rotateZX(angle);
   }
 
   /** Rotates all points by {@code angle} radians in the ZY plane. Negative angles rotate in reverse. */
   public void rotateZY(double angle) {
-    double sin = Math.sin(angle), cos = Math.cos(angle);
-    for (Point3D p : points) {
-      double t = p.z;
-      p.z = p.z * cos - p.y * sin;
-      p.y = t   * sin + p.y * cos;
-    }
+    for (Point3D p : points) p.rotateZY(angle);
   }
 
   // -------------------------------------------------------------------------
