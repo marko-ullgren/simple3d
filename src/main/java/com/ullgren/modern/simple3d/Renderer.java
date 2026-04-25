@@ -22,8 +22,12 @@ import java.util.List;
  * Cap faces (&gt; 4 vertices) are drawn last with flat shading via {@link Graphics#fillPolygon},
  * which handles non-convex polygons correctly.
  * <p>
- * A {@code Renderer} instance is stateful: it caches an off-screen {@link BufferedImage} that
- * is only reallocated when the canvas size changes. Create one instance per canvas and reuse it.
+ * Geometry is rendered at 2× resolution and bilinear-downsampled to the display buffer,
+ * giving hardware-quality anti-aliasing on all edges at no extra API cost.
+ * <p>
+ * A {@code Renderer} instance is stateful: it caches off-screen {@link BufferedImage} buffers
+ * that are only reallocated when the canvas size changes. Create one instance per canvas and
+ * reuse it.
  */
 public class Renderer {
 
@@ -35,6 +39,9 @@ public class Renderer {
   /** Cached off-screen buffer; recreated only when the canvas size changes. */
   private BufferedImage canvasImage;
   private int           canvasImageW, canvasImageH;
+  /** 2× resolution buffer; geometry is rendered here then downsampled to {@link #canvasImage}. */
+  private BufferedImage hiResImage;
+  private int           hiResImageW, hiResImageH;
   /** Scratch buffer for the elastic-dent pixel-displacement pass. */
   private int[]         tempBuffer;
   /** Optional image-space dent effect applied after all geometry is rendered. */
@@ -70,6 +77,13 @@ public class Renderer {
   public void render(Body body, Graphics g,
                      int centerX, int centerY, double scale,
                      int canvasW, int canvasH) {
+    // All geometry is rendered at 2× resolution for anti-aliasing.
+    int    hiW     = 2 * canvasW;
+    int    hiH     = 2 * canvasH;
+    double hiScale = 2.0 * scale;
+    int    hiCX    = 2 * centerX;
+    int    hiCY    = 2 * centerY;
+
     int n = body.pointCount();
     int[] sx = new int[n];
     int[] sy = new int[n];
@@ -77,8 +91,8 @@ public class Renderer {
     for (int i = 0; i < n; i++) {
       Point3D p = body.pointAt(i);
       double f = 1.0 - PROJECTION_FACTOR * p.z;
-      sx[i] = (int) (scale * p.x * f) + centerX;
-      sy[i] = (int) (scale * p.y * f) + centerY;
+      sx[i] = (int) (hiScale * p.x * f) + hiCX;
+      sy[i] = (int) (hiScale * p.y * f) + hiCY;
       sz[i] = p.z;
     }
 
@@ -132,31 +146,46 @@ public class Renderer {
       }
     }
 
-    // Render Gouraud triangles into the off-screen buffer (recreated only on resize).
-    if (canvasImage == null || canvasImageW != canvasW || canvasImageH != canvasH) {
-      canvasImage  = new BufferedImage(canvasW, canvasH, BufferedImage.TYPE_INT_ARGB);
-      canvasImageW = canvasW;
-      canvasImageH = canvasH;
+    // Render Gouraud triangles into the 2× hi-res buffer (recreated only on resize).
+    if (hiResImage == null || hiResImageW != hiW || hiResImageH != hiH) {
+      hiResImage  = new BufferedImage(hiW, hiH, BufferedImage.TYPE_INT_ARGB);
+      hiResImageW = hiW;
+      hiResImageH = hiH;
     } else {
-      int[] pix = ((DataBufferInt) canvasImage.getRaster().getDataBuffer()).getData();
+      int[] pix = ((DataBufferInt) hiResImage.getRaster().getDataBuffer()).getData();
       Arrays.fill(pix, 0);
     }
-    int[] pixels = ((DataBufferInt) canvasImage.getRaster().getDataBuffer()).getData();
+    int[] hiPixels = ((DataBufferInt) hiResImage.getRaster().getDataBuffer()).getData();
 
     sideTris.sort((t1, t2) -> Double.compare(t2.avgZ(), t1.avgZ()));
     for (Triangle t : sideTris) {
-      drawGouraudTriangle(pixels, canvasW, canvasH, colour,
+      drawGouraudTriangle(hiPixels, hiW, hiH, colour,
           t.x0(), t.y0(), t.s0(),
           t.x1(), t.y1(), t.s1(),
           t.x2(), t.y2(), t.s2());
     }
 
-    // Draw cap polygons into the same off-screen buffer so the dent effect covers everything.
+    // Draw cap polygons into the hi-res buffer with AA enabled.
     capPolys.sort((a, b) -> Double.compare(b.avgZ(), a.avgZ()));
-    Graphics2D bufG = canvasImage.createGraphics();
-    bufG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-    capPolys.forEach(p -> p.draw(bufG));
-    bufG.dispose();
+    Graphics2D hiG = hiResImage.createGraphics();
+    hiG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    capPolys.forEach(p -> p.draw(hiG));
+    hiG.dispose();
+
+    // Downsample 2× → 1× with bilinear interpolation — this is the AA step.
+    if (canvasImage == null || canvasImageW != canvasW || canvasImageH != canvasH) {
+      canvasImage  = new BufferedImage(canvasW, canvasH, BufferedImage.TYPE_INT_ARGB);
+      canvasImageW = canvasW;
+      canvasImageH = canvasH;
+    }
+    int[] pixels = ((DataBufferInt) canvasImage.getRaster().getDataBuffer()).getData();
+    Graphics2D downG = canvasImage.createGraphics();
+    downG.setComposite(java.awt.AlphaComposite.Src);
+    downG.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+        RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+    downG.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+    downG.drawImage(hiResImage, 0, 0, canvasW, canvasH, null);
+    downG.dispose();
 
     // Apply image-space elastic dent if active.
     if (effect != null && effect.isActive()) {
