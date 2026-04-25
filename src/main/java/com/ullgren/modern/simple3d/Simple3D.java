@@ -8,6 +8,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Random;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -46,11 +47,19 @@ public class Simple3D {
   private static final double FRICTION        = 0.995;
   private static final double STOP_THRESHOLD  = 0.1;
 
+  private static final int    STAR_COUNT      = 200;
+  /** Normalised [0,1] star positions, sizes and brightness — generated once. */
+  private final float[]  starX      = new float[STAR_COUNT];
+  private final float[]  starY      = new float[STAR_COUNT];
+  private final float[]  starRadius = new float[STAR_COUNT];
+  private final float[]  starAlpha  = new float[STAR_COUNT];
+
   public static void main(String[] args) {
     EventQueue.invokeLater(() -> new Simple3D().init());
   }
 
   public void init() {
+    generateStars();
     body   = buildBody();
     canvas = buildCanvas();
 
@@ -61,6 +70,32 @@ public class Simple3D {
     frame.setContentPane(canvas);
     frame.pack();
     frame.setVisible(true);
+  }
+
+  private void generateStars() {
+    Random rng = new Random(42);
+    for (int i = 0; i < STAR_COUNT; i++) {
+      starX[i]      = rng.nextFloat();
+      starY[i]      = rng.nextFloat();
+      // Most stars are tiny (radius 0.5–1.5 px); a few are larger
+      starRadius[i] = 0.5f + rng.nextFloat() * rng.nextFloat() * 2.0f;
+      starAlpha[i]  = 0.4f + rng.nextFloat() * 0.6f;
+    }
+  }
+
+  private void drawStars(Graphics g, int w, int h) {
+    for (int i = 0; i < STAR_COUNT; i++) {
+      int alpha = (int) (starAlpha[i] * 255);
+      g.setColor(new Color(255, 255, 255, alpha));
+      int x = (int) (starX[i] * w);
+      int y = (int) (starY[i] * h);
+      int d = Math.max(1, Math.round(starRadius[i] * 2));
+      if (d <= 1) {
+        g.drawLine(x, y, x, y);
+      } else {
+        g.fillOval(x, y, d, d);
+      }
+    }
   }
 
   private Body buildBody() {
@@ -114,6 +149,7 @@ public class Simple3D {
       @Override
       protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        drawStars(g, canvasWidth, canvasHeight);
         double scale = zoom * Math.min(canvasWidth, canvasHeight)
             / (double) Math.min(Simple3D.WIDTH, Simple3D.HEIGHT);
         body.draw(g, canvasWidth / 2, canvasHeight / 2, scale, canvasWidth, canvasHeight);
