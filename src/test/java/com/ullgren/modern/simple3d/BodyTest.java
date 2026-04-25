@@ -470,6 +470,75 @@ public class BodyTest {
   }
 
   // -------------------------------------------------------------------------
+  // ElasticEffect — pixel displacement
+  // -------------------------------------------------------------------------
+
+  @Test
+  public void elasticEffect_outsideRadius_pixelsUnchanged() {
+    int w = 200, h = 200;
+    int[] src = new int[w * h];
+    int[] dst = new int[w * h];
+    for (int i = 0; i < src.length; i++) src[i] = 0xFF0000FF; // blue
+    System.arraycopy(src, 0, dst, 0, src.length);
+
+    ElasticEffect effect = new ElasticEffect(() -> {});
+    effect.dent(100, 100);
+    effect.applyToPixels(src, dst, w, h);
+
+    // Corners are well outside RADIUS=80 from centre (100,100)
+    assertEquals("Top-left corner should be unchanged", src[0], dst[0]);
+    assertEquals("Bottom-right corner should be unchanged",
+        src[(h - 1) * w + (w - 1)], dst[(h - 1) * w + (w - 1)]);
+  }
+
+  @Test
+  public void elasticEffect_insideRadius_pixelsDisplaced() {
+    int w = 300, h = 300;
+    // Gradient source: each pixel encodes its x position so displacement is visible
+    int[] src = new int[w * h];
+    for (int y = 0; y < h; y++) {
+      for (int x = 0; x < w; x++) {
+        src[y * w + x] = 0xFF000000 | (x & 0xFF);
+      }
+    }
+    int[] dst = new int[w * h];
+    System.arraycopy(src, 0, dst, 0, src.length);
+
+    ElasticEffect effect = new ElasticEffect(() -> {});
+    effect.dent(150, 150);
+    effect.applyToPixels(src, dst, w, h);
+
+    // At (150+40, 150) the pixel should have been displaced (sampled from further out)
+    int originalBlue = src[150 * w + 190] & 0xFF;
+    int displacedBlue = dst[150 * w + 190] & 0xFF;
+    assertNotEquals("Pixel inside radius should be displaced", originalBlue, displacedBlue);
+  }
+
+  @Test
+  public void elasticEffect_centrePixel_notDisplaced() {
+    int w = 200, h = 200;
+    int[] src = new int[w * h];
+    for (int i = 0; i < src.length; i++) src[i] = 0xFF000000 | i;
+    int[] dst = new int[w * h];
+    System.arraycopy(src, 0, dst, 0, src.length);
+
+    ElasticEffect effect = new ElasticEffect(() -> {});
+    effect.dent(100, 100);
+    effect.applyToPixels(src, dst, w, h);
+
+    // d==0 at the click centre — the loop skips it, leaving dst unchanged
+    assertEquals("Centre pixel must not be displaced", src[100 * w + 100], dst[100 * w + 100]);
+  }
+
+  @Test
+  public void elasticEffect_isActive_afterDent() {
+    ElasticEffect effect = new ElasticEffect(() -> {});
+    assertFalse("Should be inactive before first dent", effect.isActive());
+    effect.dent(50, 50);
+    assertTrue("Should be active immediately after dent", effect.isActive());
+  }
+
+  // -------------------------------------------------------------------------
   // Helpers
   // -------------------------------------------------------------------------
 

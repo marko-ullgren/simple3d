@@ -2,9 +2,12 @@ package com.ullgren.modern.simple3d;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -32,16 +35,25 @@ public class Renderer {
   /** Cached off-screen buffer; recreated only when the canvas size changes. */
   private BufferedImage canvasImage;
   private int           canvasImageW, canvasImageH;
+  /** Scratch buffer for the elastic-dent pixel-displacement pass. */
+  private int[]         tempBuffer;
+  /** Optional image-space dent effect applied after all geometry is rendered. */
+  private ElasticEffect effect;
 
   /** A scan-line rendered triangle with per-corner Gouraud shading values. */
   private record Triangle(int x0, int y0, int x1, int y1, int x2, int y2,
                            double avgZ, float s0, float s1, float s2) {}
 
   private record CapPolygon(int[] px, int[] py, double avgZ, Color colour) {
-    void draw(Graphics g) {
+    void draw(Graphics2D g) {
       g.setColor(colour);
       g.fillPolygon(px, py, px.length);
     }
+  }
+
+  /** Attaches an elastic dent effect that will be applied each frame after geometry rendering. */
+  public void setEffect(ElasticEffect effect) {
+    this.effect = effect;
   }
 
   /**
@@ -127,7 +139,7 @@ public class Renderer {
       canvasImageH = canvasH;
     } else {
       int[] pix = ((DataBufferInt) canvasImage.getRaster().getDataBuffer()).getData();
-      java.util.Arrays.fill(pix, 0);
+      Arrays.fill(pix, 0);
     }
     int[] pixels = ((DataBufferInt) canvasImage.getRaster().getDataBuffer()).getData();
 
@@ -138,10 +150,25 @@ public class Renderer {
           t.x1(), t.y1(), t.s1(),
           t.x2(), t.y2(), t.s2());
     }
-    g.drawImage(canvasImage, 0, 0, null);
 
+    // Draw cap polygons into the same off-screen buffer so the dent effect covers everything.
     capPolys.sort((a, b) -> Double.compare(b.avgZ(), a.avgZ()));
-    capPolys.forEach(p -> p.draw(g));
+    Graphics2D bufG = canvasImage.createGraphics();
+    bufG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    capPolys.forEach(p -> p.draw(bufG));
+    bufG.dispose();
+
+    // Apply image-space elastic dent if active.
+    if (effect != null && effect.isActive()) {
+      int len = canvasW * canvasH;
+      if (tempBuffer == null || tempBuffer.length != len) {
+        tempBuffer = new int[len];
+      }
+      System.arraycopy(pixels, 0, tempBuffer, 0, len);
+      effect.applyToPixels(tempBuffer, pixels, canvasW, canvasH);
+    }
+
+    g.drawImage(canvasImage, 0, 0, null);
   }
 
   /**

@@ -38,6 +38,7 @@ public class Simple3D {
 
   private Body   body;
   private JPanel canvas;
+  private ElasticEffect elasticEffect;
   private int    canvasWidth  = WIDTH;
   private int    canvasHeight = HEIGHT;
   private double zoom = 1.0;
@@ -51,6 +52,8 @@ public class Simple3D {
   public void init() {
     body   = buildBody();
     canvas = buildCanvas();
+    elasticEffect = new ElasticEffect(canvas::repaint);
+    renderer.setEffect(elasticEffect);
     animationController = new AnimationController(body, canvas::repaint);
 
     frame.setTitle("A Simple 3D application (c) Marko Ullgren 1998-2026");
@@ -140,6 +143,7 @@ public class Simple3D {
       public void mousePressed(MouseEvent e) {
         animationController.applyImpulse(
             e.getX(), e.getY(), canvasWidth / 2, canvasHeight / 2, SENSITIVITY);
+        elasticEffect.dent(e.getX(), e.getY());
       }
     });
 
