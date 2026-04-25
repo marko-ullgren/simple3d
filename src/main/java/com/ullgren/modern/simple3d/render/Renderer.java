@@ -34,8 +34,10 @@ import com.ullgren.modern.simple3d.model.Point3D;
  */
 public class Renderer {
 
-  private static final double PROJECTION_FACTOR   = 0.001;
-  private static final double AMBIENT             = 0.15;
+  private static final double PROJECTION_FACTOR    = 0.001;
+  private static final double AMBIENT              = 0.15;
+  /** How strongly baked AO darkens the ambient floor (0 = off, 1 = full). */
+  private static final double AO_STRENGTH          = 0.5;
   /** Adjacent faces whose normalised normals dot-product exceeds this share smooth shading. */
   private static final double SMOOTH_THRESHOLD_COS = Math.cos(Math.toRadians(60.0));
 
@@ -127,6 +129,12 @@ public class Renderer {
       if (face.length > 4) {
         double fnLen = Math.sqrt(fn[0] * fn[0] + fn[1] * fn[1] + fn[2] * fn[2]);
         double shade = Math.max(AMBIENT, fnLen > 0 ? -fn[2] / fnLen : AMBIENT);
+        // Apply average AO of the cap's vertices to the flat ambient floor.
+        double avgAO = 0;
+        for (int idx : face) avgAO += body.getVertexAO(idx);
+        avgAO /= face.length;
+        double aoAmbient = AMBIENT * (1.0 - AO_STRENGTH * avgAO);
+        shade = Math.max(aoAmbient, shade);
         Color faceColour = shadedColour(colour, shade);
         double avgZ = 0;
         for (int idx : face) avgZ += sz[idx];
@@ -138,7 +146,8 @@ public class Renderer {
       } else {
         float[] cs = new float[face.length];
         for (int ci = 0; ci < face.length; ci++) {
-          cs[ci] = (float) computeCornerShade(body, face[ci], fi, faceNormals, vertexFaces);
+          cs[ci] = (float) computeCornerShade(body, face[ci], fi, faceNormals, vertexFaces,
+              body.getVertexAO(face[ci]));
         }
         for (int i = 1; i < face.length - 1; i++) {
           int a = face[0], b = face[i], c = face[i + 1];
@@ -222,10 +231,11 @@ public class Renderer {
    * contribute to the average, preserving hard edges.
    */
   private double computeCornerShade(Body body, int vIdx, int faceIdx,
-      double[][] faceNormals, List<Integer>[] vertexFaces) {
+      double[][] faceNormals, List<Integer>[] vertexFaces, float ao) {
+    double ambient = AMBIENT * (1.0 - AO_STRENGTH * ao);
     double[] fn = faceNormals[faceIdx];
     double fnLen = Math.sqrt(fn[0] * fn[0] + fn[1] * fn[1] + fn[2] * fn[2]);
-    if (fnLen == 0) return AMBIENT;
+    if (fnLen == 0) return ambient;
     double nx = fn[0] / fnLen, ny = fn[1] / fnLen, nz = fn[2] / fnLen;
 
     double snx = nx, sny = ny, snz = nz;
@@ -242,7 +252,7 @@ public class Renderer {
       }
     }
     double len = Math.sqrt(snx * snx + sny * sny + snz * snz);
-    return len > 0 ? Math.max(AMBIENT, -snz / len) : AMBIENT;
+    return len > 0 ? Math.max(ambient, -snz / len) : ambient;
   }
 
   /**
