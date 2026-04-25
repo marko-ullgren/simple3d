@@ -235,6 +235,84 @@ public class BodyTest {
     body.rotateZY();
   }
 
+  @Test
+  public void rotateYZ_doubleAngle_rotatingByZeroDegreesDoesNothing() {
+    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) body.rotateZY();
+    long before = pixelSum(drawToImage(body));
+    body.rotateYZ(0.0);
+    assertEquals(before, pixelSum(drawToImage(body)));
+  }
+
+  @Test
+  public void rotateYZ_doubleAngle_changesOrientation() {
+    Body before = Body.loadBody(RES + "mu.body", Color.blue);
+    Body after  = Body.loadBody(RES + "mu.body", Color.blue);
+    after.rotateYZ(Math.PI / 4);
+    assertDifferentPixels(before, after);
+  }
+
+  @Test
+  public void rotateYZ_doubleAngle_negativeAngleIsInverse() {
+    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) body.rotateZY();
+    long before = pixelSum(drawToImage(body));
+    body.rotateYZ(Math.PI / 6);
+    body.rotateYZ(-Math.PI / 6);
+    assertEquals("rotateYZ(a) then rotateYZ(-a) should restore orientation", before,
+        pixelSum(drawToImage(body)));
+  }
+
+  @Test
+  public void rotateYZ_doubleAngle_matchesNoArgAtRotationAngle() {
+    Body withDouble = Body.loadBody(RES + "mu.body", Color.blue);
+    withDouble.rotateYZ(Point3D.ROTATION_ANGLE);
+    Body withNoArg = Body.loadBody(RES + "mu.body", Color.blue);
+    withNoArg.rotateYZ();
+    assertEquals("rotateYZ(ROTATION_ANGLE) and rotateYZ() should produce identical results",
+        pixelSum(drawToImage(withDouble)), pixelSum(drawToImage(withNoArg)));
+  }
+
+  @Test
+  public void rotateZX_doubleAngle_rotatingByZeroDegreesDoesNothing() {
+    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) body.rotateZY();
+    long before = pixelSum(drawToImage(body));
+    body.rotateZX(0.0);
+    assertEquals(before, pixelSum(drawToImage(body)));
+  }
+
+  @Test
+  public void rotateZX_doubleAngle_changesOrientation() {
+    Body before = Body.loadBody(RES + "mu.body", Color.blue);
+    Body after  = Body.loadBody(RES + "mu.body", Color.blue);
+    after.rotateZX(Math.PI / 4);
+    assertDifferentPixels(before, after);
+  }
+
+  @Test
+  public void rotateZX_doubleAngle_negativeAngleIsInverse() {
+    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) body.rotateZY();
+    long before = pixelSum(drawToImage(body));
+    body.rotateZX(Math.PI / 6);
+    body.rotateZX(-Math.PI / 6);
+    long after = pixelSum(drawToImage(body));
+    double diff = Math.abs(before - after) / (double) Math.max(1, before);
+    assertTrue("rotateZX(a) then rotateZX(-a) should restore orientation (diff=" + diff + ")",
+        diff < 0.01);
+  }
+
+  @Test
+  public void rotateZX_doubleAngle_matchesNoArgAtRotationAngle() {
+    Body withDouble = Body.loadBody(RES + "mu.body", Color.blue);
+    withDouble.rotateZX(Point3D.ROTATION_ANGLE);
+    Body withNoArg = Body.loadBody(RES + "mu.body", Color.blue);
+    withNoArg.rotateZX();
+    assertEquals("rotateZX(ROTATION_ANGLE) and rotateZX() should produce identical results",
+        pixelSum(drawToImage(withDouble)), pixelSum(drawToImage(withNoArg)));
+  }
+
   // -------------------------------------------------------------------------
   // Continuous rotation (double-angle overloads)
   // -------------------------------------------------------------------------
