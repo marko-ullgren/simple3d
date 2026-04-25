@@ -508,9 +508,9 @@ public class BodyTest {
     effect.dent(150, 150);
     effect.applyToPixels(src, dst, w, h);
 
-    // At (150+40, 150) the pixel should have been displaced (sampled from further out)
-    int originalBlue = src[150 * w + 190] & 0xFF;
-    int displacedBlue = dst[150 * w + 190] & 0xFF;
+    // At (150+20, 150) — distance 20px, well inside RADIUS=38 — pixel should be displaced
+    int originalBlue = src[150 * w + 170] & 0xFF;
+    int displacedBlue = dst[150 * w + 170] & 0xFF;
     assertNotEquals("Pixel inside radius should be displaced", originalBlue, displacedBlue);
   }
 

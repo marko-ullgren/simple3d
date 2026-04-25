@@ -18,9 +18,9 @@ public class ElasticEffect {
   private static final float STIFFNESS   = 350f;
   private static final float DAMPING     = 22f;
   /** Initial inward displacement in pixels. */
-  private static final float INIT_DISP   = 16f;
+  private static final float INIT_DISP   = 5f;
   /** Pixel radius of the influence region. */
-  static final int           RADIUS      = 80;
+  static final int           RADIUS      = 38;
   private static final float STOP_THRESH = 0.3f;
   private static final int   TICK_MS     = 16;
 
@@ -91,7 +91,9 @@ public class ElasticEffect {
         float d   = (float) Math.sqrt(ddx * ddx + ddy * ddy);
         if (d == 0 || d >= RADIUS) continue;
 
-        float mag         = displacement * (float) Math.sin(Math.PI * d / RADIUS);
+        float t           = d / RADIUS;              // 0..1
+        // Cubic profile: peaks at t=1/3, zero at t=0 and t=1 — tighter round shape.
+        float mag         = displacement * 4f * t * (1f - t) * (1f - t);
         float sourceDist  = d + mag;
         if (sourceDist <= 0) {
           // Overshoot puts the sample at or past centre — clamp to original.
