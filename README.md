@@ -19,12 +19,16 @@ A from-scratch rewrite targeting Java 21, keeping the same geometry and interact
 - **Proper window close** — the × button works
 - **English identifiers** throughout (`Point3D`, `Body`, `Simple3D`, `rotateXZ`, …) replacing the original Finnish names
 - **Resizable window** with content that scales proportionally
-- **Solid rendering** with flat shading and hidden-surface removal:
+- **Solid rendering** with Gouraud shading and hidden-surface removal:
   - Back-face culling discards faces pointing away from the viewer
-  - Diffuse + ambient flat shading based on each face's normal vs. the view direction
+  - Diffuse + ambient Gouraud shading with smooth normals across adjacent faces
+  - Per-vertex ambient occlusion baked at load time — concave corners appear naturally darker
   - Side faces are fan-triangulated and sorted back-to-front (painter's algorithm)
   - The non-convex cap face is drawn last — geometrically guaranteed to be in front of any side face it overlaps
+  - 2× supersampling anti-aliasing for smooth edges
+- **Elastic dent effect** — clicking the shape leaves a soft spring-damper dent that bounces back
 - **Starfield background** — 200 stars of varying size and brightness give the illusion of the object floating in space
+- **Seven built-in shapes**: MU logo (default), Cube, Tetrahedron, Octahedron, Icosahedron, Torus, and Pyramid
 
 ---
 
@@ -71,5 +75,5 @@ mvn exec:java@vintage
 
 - **Click** in a quadrant to spin the object in that direction; click again to add more momentum or in the opposite quadrant to slow it down
 - **Scroll wheel** to zoom in and out (zoom range: 0.1× – 10×)
-- **Body menu** — switch between the MU logo and a cube
+- **Body menu** — switch between seven shapes: MU logo (default), Cube, Tetrahedron, Octahedron, Icosahedron, Torus, and Pyramid
 - **Colour menu** — change the object colour
