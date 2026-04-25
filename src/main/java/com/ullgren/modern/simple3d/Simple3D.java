@@ -8,13 +8,11 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Random;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
-import javax.swing.Timer;
 
 /**
  * Simple3D renders a three-dimensional solid body that rotates on screen. Clicking different
@@ -28,40 +26,32 @@ import javax.swing.Timer;
  */
 public class Simple3D {
 
-  static final int WIDTH = 350;
+  static final int WIDTH  = 350;
   static final int HEIGHT = 375;
 
   /** Minimum pixel distance from centre required for a click to affect rotation. */
   static final int SENSITIVITY = 50;
 
-  private final JFrame frame = new JFrame();
-  private Body body;
+  private final JFrame  frame    = new JFrame();
+  private final StarField starField = new StarField();
+  private final Renderer  renderer  = new Renderer();
+
+  private Body   body;
   private JPanel canvas;
-  private int canvasWidth  = WIDTH;
-  private int canvasHeight = HEIGHT;
-  private double angularMomentumXZ;
-  private double angularMomentumYZ;
+  private int    canvasWidth  = WIDTH;
+  private int    canvasHeight = HEIGHT;
   private double zoom = 1.0;
-  private Timer animationTimer;
 
-  private static final double FRICTION        = 0.995;
-  private static final double STOP_THRESHOLD  = 0.1;
-
-  private static final int    STAR_COUNT      = 200;
-  /** Normalised [0,1] star positions, sizes and brightness — generated once. */
-  private final float[]  starX      = new float[STAR_COUNT];
-  private final float[]  starY      = new float[STAR_COUNT];
-  private final float[]  starRadius = new float[STAR_COUNT];
-  private final float[]  starAlpha  = new float[STAR_COUNT];
+  private AnimationController animationController;
 
   public static void main(String[] args) {
     EventQueue.invokeLater(() -> new Simple3D().init());
   }
 
   public void init() {
-    generateStars();
     body   = buildBody();
     canvas = buildCanvas();
+    animationController = new AnimationController(body, canvas::repaint);
 
     frame.setTitle("A Simple 3D application (c) Marko Ullgren 1998-2026");
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -70,32 +60,6 @@ public class Simple3D {
     frame.setContentPane(canvas);
     frame.pack();
     frame.setVisible(true);
-  }
-
-  private void generateStars() {
-    Random rng = new Random(42);
-    for (int i = 0; i < STAR_COUNT; i++) {
-      starX[i]      = rng.nextFloat();
-      starY[i]      = rng.nextFloat();
-      // Most stars are tiny (radius 0.5–1.5 px); a few are larger
-      starRadius[i] = 0.5f + rng.nextFloat() * rng.nextFloat() * 2.0f;
-      starAlpha[i]  = 0.4f + rng.nextFloat() * 0.6f;
-    }
-  }
-
-  private void drawStars(Graphics g, int w, int h) {
-    for (int i = 0; i < STAR_COUNT; i++) {
-      int alpha = (int) (starAlpha[i] * 255);
-      g.setColor(new Color(255, 255, 255, alpha));
-      int x = (int) (starX[i] * w);
-      int y = (int) (starY[i] * h);
-      int d = Math.max(1, Math.round(starRadius[i] * 2));
-      if (d <= 1) {
-        g.drawLine(x, y, x, y);
-      } else {
-        g.fillOval(x, y, d, d);
-      }
-    }
   }
 
   private Body buildBody() {
@@ -129,10 +93,12 @@ public class Simple3D {
     muItem.addActionListener(e -> {
       body = Body.loadBody("/com/ullgren/modern/simple3d/mu.body", body.getColour());
       for (int i = 0; i < 60; i++) body.rotateZY();
+      animationController.setBody(body);
       canvas.repaint();
     });
     cubeItem.addActionListener(e -> {
       body = Body.loadBody("/com/ullgren/modern/simple3d/cube.body", body.getColour());
+      animationController.setBody(body);
       canvas.repaint();
     });
     quitItem.addActionListener(e -> System.exit(0));
@@ -149,10 +115,10 @@ public class Simple3D {
       @Override
       protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        drawStars(g, canvasWidth, canvasHeight);
+        starField.draw(g, canvasWidth, canvasHeight);
         double scale = zoom * Math.min(canvasWidth, canvasHeight)
             / (double) Math.min(Simple3D.WIDTH, Simple3D.HEIGHT);
-        body.draw(g, canvasWidth / 2, canvasHeight / 2, scale, canvasWidth, canvasHeight);
+        renderer.render(body, g, canvasWidth / 2, canvasHeight / 2, scale, canvasWidth, canvasHeight);
       }
     };
 
@@ -172,20 +138,8 @@ public class Simple3D {
     panel.addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
-        boolean wasIdle = isIdle();
-        int cx = canvasWidth  / 2;
-        int cy = canvasHeight / 2;
-
-        if (e.getX() < cx - SENSITIVITY) angularMomentumXZ -= 1.0;
-        if (e.getX() > cx + SENSITIVITY) angularMomentumXZ += 1.0;
-        if (e.getY() < cy - SENSITIVITY) angularMomentumYZ += 1.0;
-        if (e.getY() > cy + SENSITIVITY) angularMomentumYZ -= 1.0;
-
-        if (isIdle()) {
-          stopAnimation();
-        } else if (wasIdle) {
-          startAnimation();
-        }
+        animationController.applyImpulse(
+            e.getX(), e.getY(), canvasWidth / 2, canvasHeight / 2, SENSITIVITY);
       }
     });
 
@@ -199,29 +153,5 @@ public class Simple3D {
     panel.setForeground(Color.white);
     panel.setPreferredSize(new Dimension(WIDTH, HEIGHT));
     return panel;
-  }
-
-  private void startAnimation() {
-    if (animationTimer == null) {
-      animationTimer = new Timer(40, e -> {
-        body.rotateXZ(angularMomentumXZ * Point3D.ROTATION_ANGLE);
-        body.rotateZY(angularMomentumYZ * Point3D.ROTATION_ANGLE);
-        angularMomentumXZ *= FRICTION;
-        angularMomentumYZ *= FRICTION;
-        if (isIdle()) stopAnimation();
-        canvas.repaint();
-      });
-    }
-    animationTimer.start();
-  }
-
-  private void stopAnimation() {
-    angularMomentumXZ = angularMomentumYZ = 0;
-    if (animationTimer != null) animationTimer.stop();
-  }
-
-  private boolean isIdle() {
-    return Math.abs(angularMomentumXZ) < STOP_THRESHOLD
-        && Math.abs(angularMomentumYZ) < STOP_THRESHOLD;
   }
 }

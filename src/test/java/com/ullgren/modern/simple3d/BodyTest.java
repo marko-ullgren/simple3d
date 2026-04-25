@@ -123,34 +123,34 @@ public class BodyTest {
   // -------------------------------------------------------------------------
 
   @Test
-  public void draw_withTriangleFace_doesNotThrow() {
+  public void render_withTriangleFace_doesNotThrow() {
     Body body = Body.loadBody(RES + "test_triangle.body", Color.blue);
     Graphics g = newGraphics(400, 400);
-    body.draw(g, 200, 200, 1.0, 400, 400);
+    new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
     g.dispose();
   }
 
   @Test
-  public void draw_withQuadFace_doesNotThrow() {
+  public void render_withQuadFace_doesNotThrow() {
     Body body = Body.loadBody(RES + "test_quad.body", Color.blue);
     Graphics g = newGraphics(400, 400);
-    body.draw(g, 200, 200, 1.0, 400, 400);
+    new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
     g.dispose();
   }
 
   @Test
-  public void draw_withCapPolygon_doesNotThrow() {
+  public void render_withCapPolygon_doesNotThrow() {
     Body body = Body.loadBody(RES + "test_cap.body", Color.blue);
     Graphics g = newGraphics(400, 400);
-    body.draw(g, 200, 200, 1.0, 400, 400);
+    new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
     g.dispose();
   }
 
   @Test
-  public void draw_backFacedBody_producesNoPixels() {
+  public void render_backFacedBody_producesNoPixels() {
     Body body = Body.loadBody(RES + "test_backfacing.body", Color.white);
     BufferedImage img = newImage(400, 400);
-    body.draw(img.createGraphics(), 200, 200, 1.0, 400, 400);
+    new Renderer().render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
     // All pixels should remain transparent/black — nothing was drawn
     for (int y = 0; y < 400; y++) {
       for (int x = 0; x < 400; x++) {
@@ -160,28 +160,78 @@ public class BodyTest {
   }
 
   @Test
-  public void draw_frontFacedBody_producesNonBlackPixels() {
+  public void render_frontFacedBody_producesNonBlackPixels() {
     Body body = Body.loadBody(RES + "test_triangle.body", Color.white);
     BufferedImage img = newImage(400, 400);
-    body.draw(img.createGraphics(), 200, 200, 1.0, 400, 400);
+    new Renderer().render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
     assertTrue("Expected some pixels to be drawn", hasNonZeroPixel(img));
   }
 
   @Test
-  public void draw_muBody_doesNotThrow() {
+  public void render_muBody_doesNotThrow() {
     Body body = Body.loadBody(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
     Graphics g = newGraphics(400, 400);
-    body.draw(g, 200, 200, 1.0, 400, 400);
+    new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
     g.dispose();
   }
 
   @Test
-  public void draw_cubeBody_doesNotThrow() {
+  public void render_cubeBody_doesNotThrow() {
     Body body = Body.loadBody(RES + "cube.body", Color.blue);
     Graphics g = newGraphics(400, 400);
-    body.draw(g, 200, 200, 1.0, 400, 400);
+    new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
     g.dispose();
+  }
+
+  // -------------------------------------------------------------------------
+  // Renderer — state and reuse
+  // -------------------------------------------------------------------------
+
+  @Test
+  public void renderer_consecutiveRenders_produceSameOutput() {
+    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) body.rotateZY();
+    Renderer renderer = new Renderer();
+    BufferedImage img = newImage(400, 400);
+    renderer.render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
+    long first = pixelSum(img);
+    img = newImage(400, 400);
+    renderer.render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
+    long second = pixelSum(img);
+    assertEquals("Same renderer, same body, same size should produce identical output",
+        first, second);
+  }
+
+  @Test
+  public void renderer_afterColourChange_reflectsNewColour() {
+    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) body.rotateZY();
+    Renderer renderer = new Renderer();
+    long blue = pixelSum(renderWith(renderer, body, 400, 400));
+    body.setColour(Color.red);
+    long red = pixelSum(renderWith(renderer, body, 400, 400));
+    assertNotEquals("Render output should change after colour change", blue, red);
+  }
+
+  @Test
+  public void renderer_afterBodySwap_reflectsNewBody() {
+    Renderer renderer = new Renderer();
+    Body mu = Body.loadBody(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) mu.rotateZY();
+    Body cube = Body.loadBody(RES + "cube.body", Color.blue);
+    long muPixels   = pixelSum(renderWith(renderer, mu,   400, 400));
+    long cubePixels = pixelSum(renderWith(renderer, cube, 400, 400));
+    assertNotEquals("MU and cube should produce different renders", muPixels, cubePixels);
+  }
+
+  @Test
+  public void renderer_afterSizeChange_doesNotThrow() {
+    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) body.rotateZY();
+    Renderer renderer = new Renderer();
+    renderer.render(body, newGraphics(400, 400), 200, 200, 1.0, 400, 400);
+    renderer.render(body, newGraphics(600, 500), 300, 250, 1.0, 600, 500);
   }
 
   // -------------------------------------------------------------------------
@@ -433,7 +483,13 @@ public class BodyTest {
 
   private static BufferedImage drawToImage(Body body) {
     BufferedImage img = newImage(400, 400);
-    body.draw(img.createGraphics(), 200, 200, 1.0, 400, 400);
+    new Renderer().render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
+    return img;
+  }
+
+  private static BufferedImage renderWith(Renderer renderer, Body body, int w, int h) {
+    BufferedImage img = newImage(w, h);
+    renderer.render(body, img.createGraphics(), w / 2, h / 2, 1.0, w, h);
     return img;
   }
 
