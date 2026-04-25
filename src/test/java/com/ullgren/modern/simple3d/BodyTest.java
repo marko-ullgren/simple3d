@@ -236,7 +236,7 @@ public class BodyTest {
   }
 
   @Test
-  public void rotateYZ_doubleAngle_zeroIsIdentity() {
+  public void rotateYZ_doubleAngle_rotatingByZeroDegreesDoesNothing() {
     Body body = Body.loadBody(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
     long before = pixelSum(drawToImage(body));
@@ -274,7 +274,7 @@ public class BodyTest {
   }
 
   @Test
-  public void rotateZX_doubleAngle_zeroIsIdentity() {
+  public void rotateZX_doubleAngle_rotatingByZeroDegreesDoesNothing() {
     Body body = Body.loadBody(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
     long before = pixelSum(drawToImage(body));
