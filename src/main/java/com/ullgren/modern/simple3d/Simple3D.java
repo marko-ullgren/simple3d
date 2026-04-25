@@ -71,6 +71,12 @@ public class Simple3D {
     frame.setVisible(true);
   }
 
+  private void loadShape(String resource) {
+    body = Body.loadBody(resource, body.getColour());
+    animationController.setBody(body);
+    canvas.repaint();
+  }
+
   private Body buildBody() {
     Body b = Body.loadBody("/com/ullgren/modern/simple3d/mu.body", Color.blue);
     for (int i = 0; i < 60; i++) b.rotateZY();
@@ -81,11 +87,22 @@ public class Simple3D {
     JMenuBar menuBar = new JMenuBar();
 
     JMenu bodyMenu = new JMenu("Body");
-    JMenuItem muItem   = new JMenuItem("MU");
-    JMenuItem cubeItem = new JMenuItem("Cube");
-    JMenuItem quitItem = new JMenuItem("Quit");
+    JMenuItem muItem          = new JMenuItem("MU");
+    JMenuItem cubeItem        = new JMenuItem("Cube");
+    JMenuItem tetrahedronItem = new JMenuItem("Tetrahedron");
+    JMenuItem octahedronItem  = new JMenuItem("Octahedron");
+    JMenuItem icosahedronItem = new JMenuItem("Icosahedron");
+    JMenuItem torusItem       = new JMenuItem("Torus");
+    JMenuItem pyramidItem     = new JMenuItem("Pyramid");
+    JMenuItem quitItem        = new JMenuItem("Quit");
     bodyMenu.add(muItem);
+    bodyMenu.addSeparator();
     bodyMenu.add(cubeItem);
+    bodyMenu.add(tetrahedronItem);
+    bodyMenu.add(octahedronItem);
+    bodyMenu.add(icosahedronItem);
+    bodyMenu.add(torusItem);
+    bodyMenu.add(pyramidItem);
     bodyMenu.addSeparator();
     bodyMenu.add(quitItem);
     menuBar.add(bodyMenu);
@@ -105,11 +122,19 @@ public class Simple3D {
       animationController.setBody(body);
       canvas.repaint();
     });
-    cubeItem.addActionListener(e -> {
-      body = Body.loadBody("/com/ullgren/modern/simple3d/cube.body", body.getColour());
+    cubeItem.addActionListener(e -> loadShape("/com/ullgren/modern/simple3d/cube.body"));
+    tetrahedronItem.addActionListener(e -> loadShape("/com/ullgren/modern/simple3d/tetrahedron.body"));
+    octahedronItem.addActionListener(e  -> loadShape("/com/ullgren/modern/simple3d/octahedron.body"));
+    icosahedronItem.addActionListener(e -> loadShape("/com/ullgren/modern/simple3d/icosahedron.body"));
+    torusItem.addActionListener(e -> {
+      body = Body.loadBody("/com/ullgren/modern/simple3d/torus.body", body.getColour());
+      // Tilt slightly so the tube depth is visible from the start
+      for (int i = 0; i < 5; i++) body.rotateXZ();
+      for (int i = 0; i < 5; i++) body.rotateYZ();
       animationController.setBody(body);
       canvas.repaint();
     });
+    pyramidItem.addActionListener(e     -> loadShape("/com/ullgren/modern/simple3d/pyramid.body"));
     quitItem.addActionListener(e -> System.exit(0));
 
     blueItem.addActionListener(e  -> { body.setColour(Color.blue);  canvas.repaint(); });
