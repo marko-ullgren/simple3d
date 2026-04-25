@@ -18,9 +18,9 @@ public class ElasticEffect {
   private static final float STIFFNESS   = 350f;
   private static final float DAMPING     = 22f;
   /** Initial inward displacement in pixels. */
-  private static final float INIT_DISP   = 5f;
+  private static final float INIT_DISP   = 10f;
   /** Pixel radius of the influence region. */
-  static final int           RADIUS      = 38;
+  static final int           RADIUS      = 60;
   private static final float STOP_THRESH = 0.3f;
   private static final int   TICK_MS     = 16;
 
