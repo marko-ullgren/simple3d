@@ -592,4 +592,40 @@ public class BodyTest {
     assertNotEquals("Expected bodies at different orientations to produce different renders",
         sumA, sumB);
   }
+
+  // -------------------------------------------------------------------------
+  // Ambient Occlusion
+  // -------------------------------------------------------------------------
+
+  @Test
+  public void ambientOcclusion_flatTriangle_isZero() {
+    // A single flat face: all three vertex normals agree → AO should be 0.
+    Body body = Body.loadBody(RES + "test_triangle.body", Color.red);
+    for (int i = 0; i < body.pointCount(); i++) {
+      assertEquals("flat triangle vertex " + i + " should have AO = 0",
+          0.0f, body.getVertexAO(i), 1e-6f);
+    }
+  }
+
+  @Test
+  public void ambientOcclusion_cubeCorner_isPositive() {
+    // A cube has 3 perpendicular faces meeting at each corner.
+    // Adjacent face normals diverge → mean normal length < 1 → AO > 0.
+    Body body = Body.loadBody(RES + "test_cube.body", Color.red);
+    boolean anyPositive = false;
+    for (int i = 0; i < body.pointCount(); i++) {
+      if (body.getVertexAO(i) > 0f) { anyPositive = true; break; }
+    }
+    assertTrue("cube corner vertices should have AO > 0", anyPositive);
+  }
+
+  @Test
+  public void ambientOcclusion_allValuesInRange() {
+    Body body = Body.loadBody(RES + "test_cube.body", Color.red);
+    for (int i = 0; i < body.pointCount(); i++) {
+      float ao = body.getVertexAO(i);
+      assertTrue("AO[" + i + "] must be >= 0", ao >= 0f);
+      assertTrue("AO[" + i + "] must be <= 1", ao <= 1.0f);
+    }
+  }
 }
