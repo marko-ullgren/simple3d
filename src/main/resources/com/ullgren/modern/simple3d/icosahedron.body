@@ -1,0 +1,41 @@
+# Icosahedron — regular, 12 vertices, 20 triangular faces
+# Scaled to fit within radius ~85
+
+points
+    0  45  72
+    0 -45  72
+    0  45 -72
+    0 -45 -72
+   45  72   0
+  -45  72   0
+   45 -72   0
+  -45 -72   0
+   72   0  45
+  -72   0  45
+   72   0 -45
+  -72   0 -45
+
+faces
+# Top cap (around vertex 0)
+0 1 8
+0 8 4
+0 4 5
+0 5 9
+0 9 1
+# Bottom cap (around vertex 3)
+3 2 10
+3 10 6
+3 6 7
+3 7 11
+3 11 2
+# Equatorial band
+1 6 8
+8 6 10
+8 10 4
+4 10 2
+4 2 5
+5 2 11
+5 11 9
+9 11 7
+9 7 1
+1 7 6

@@ -1,0 +1,18 @@
+# Pyramid — square base, single apex (Egyptian style)
+# 5 points, 4 triangular side faces + 1 quad base
+
+points
+  -75 -60 -75
+   75 -60 -75
+   75 -60  75
+  -75 -60  75
+    0  85   0
+
+faces
+# Side faces (outward normals)
+0 3 4
+3 2 4
+2 1 4
+1 0 4
+# Base (normal points downward)
+0 1 2 3
