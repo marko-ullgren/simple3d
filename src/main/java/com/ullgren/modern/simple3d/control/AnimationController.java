@@ -1,6 +1,9 @@
-package com.ullgren.modern.simple3d;
+package com.ullgren.modern.simple3d.control;
 
 import javax.swing.Timer;
+
+import com.ullgren.modern.simple3d.model.Body;
+import com.ullgren.modern.simple3d.model.Point3D;
 
 /**
  * Controls the rotation animation of a {@link Body}.

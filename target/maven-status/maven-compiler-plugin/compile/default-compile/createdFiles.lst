@@ -1,0 +1,15 @@
+com/ullgren/vintage/simple3d/Piste.class
+com/ullgren/modern/simple3d/Simple3D.class
+com/ullgren/modern/simple3d/render/Renderer.class
+com/ullgren/modern/simple3d/render/Renderer$CapPolygon.class
+com/ullgren/modern/simple3d/Simple3D$1.class
+com/ullgren/modern/simple3d/render/StarField.class
+com/ullgren/modern/simple3d/render/ElasticEffect.class
+com/ullgren/vintage/simple3d/Kappale.class
+com/ullgren/modern/simple3d/control/AnimationController.class
+com/ullgren/modern/simple3d/model/Body.class
+com/ullgren/modern/simple3d/Simple3D$3.class
+com/ullgren/modern/simple3d/render/Renderer$Triangle.class
+com/ullgren/vintage/simple3d/Simple3D.class
+com/ullgren/modern/simple3d/model/Point3D.class
+com/ullgren/modern/simple3d/Simple3D$2.class

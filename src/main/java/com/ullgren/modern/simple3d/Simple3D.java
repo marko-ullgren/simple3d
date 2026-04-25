@@ -14,6 +14,12 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 
+import com.ullgren.modern.simple3d.control.AnimationController;
+import com.ullgren.modern.simple3d.model.Body;
+import com.ullgren.modern.simple3d.render.ElasticEffect;
+import com.ullgren.modern.simple3d.render.Renderer;
+import com.ullgren.modern.simple3d.render.StarField;
+
 /**
  * Simple3D renders a three-dimensional solid body that rotates on screen. Clicking different
  * parts of the canvas changes the rotation direction. Body shape and colour can be changed via

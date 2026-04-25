@@ -1,4 +1,4 @@
-package com.ullgren.modern.simple3d;
+package com.ullgren.modern.simple3d.render;
 
 import java.awt.Color;
 import java.awt.Graphics;
@@ -9,6 +9,9 @@ import java.awt.image.DataBufferInt;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import com.ullgren.modern.simple3d.model.Body;
+import com.ullgren.modern.simple3d.model.Point3D;
 
 /**
  * Renders a {@link Body} onto a {@link Graphics} context using Gouraud shading for side faces
@@ -90,10 +93,10 @@ public class Renderer {
     double[] sz = new double[n];
     for (int i = 0; i < n; i++) {
       Point3D p = body.pointAt(i);
-      double f = 1.0 - PROJECTION_FACTOR * p.z;
-      sx[i] = (int) (hiScale * p.x * f) + hiCX;
-      sy[i] = (int) (hiScale * p.y * f) + hiCY;
-      sz[i] = p.z;
+      double f = 1.0 - PROJECTION_FACTOR * p.getZ();
+      sx[i] = (int) (hiScale * p.getX() * f) + hiCX;
+      sy[i] = (int) (hiScale * p.getY() * f) + hiCY;
+      sz[i] = p.getZ();
     }
 
     int fc = body.faceCount();
@@ -208,8 +211,8 @@ public class Renderer {
     Point3D p0 = body.pointAt(face[0]);
     Point3D p1 = body.pointAt(face[1]);
     Point3D p2 = body.pointAt(face[2]);
-    double ax = p1.x - p0.x, ay = p1.y - p0.y, az = p1.z - p0.z;
-    double bx = p2.x - p0.x, by = p2.y - p0.y, bz = p2.z - p0.z;
+    double ax = p1.getX() - p0.getX(), ay = p1.getY() - p0.getY(), az = p1.getZ() - p0.getZ();
+    double bx = p2.getX() - p0.getX(), by = p2.getY() - p0.getY(), bz = p2.getZ() - p0.getZ();
     return new double[]{ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx};
   }
 

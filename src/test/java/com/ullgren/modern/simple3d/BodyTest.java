@@ -6,6 +6,11 @@ import java.awt.image.BufferedImage;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+import com.ullgren.modern.simple3d.model.Body;
+import com.ullgren.modern.simple3d.model.Point3D;
+import com.ullgren.modern.simple3d.render.ElasticEffect;
+import com.ullgren.modern.simple3d.render.Renderer;
+
 public class BodyTest {
 
   private static final String RES = "/com/ullgren/modern/simple3d/";

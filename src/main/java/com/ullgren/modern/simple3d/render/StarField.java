@@ -1,4 +1,4 @@
-package com.ullgren.modern.simple3d;
+package com.ullgren.modern.simple3d.render;
 
 import java.awt.Color;
 import java.awt.Graphics;
