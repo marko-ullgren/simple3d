@@ -240,7 +240,7 @@ public class BodyTest {
   // -------------------------------------------------------------------------
 
   @Test
-  public void rotateXZ_doubleAngle_zeroIsIdentity() {
+  public void rotateXZ_doubleAngle_rotatingByZeroDegreesDoesNothing() {
     Body body = Body.loadBody(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
 
@@ -292,7 +292,7 @@ public class BodyTest {
   }
 
   @Test
-  public void rotateZY_doubleAngle_zeroIsIdentity() {
+  public void rotateZY_doubleAngle_rotatingByZeroDegreesDoesNothing() {
     Body body = Body.loadBody(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
 
