@@ -2,6 +2,8 @@
 
 A 3D viewer that renders an interactive rotating solid body. Originally written by Marko Ullgren in January 1998 as a Java 1.1 applet displaying a **wireframe** object, and gently converted to a standalone application in August 2020. The repository now contains two packages side by side: the untouched vintage wireframe original and a fully modernised rewrite that renders a **solid body** with flat shading and hidden-surface removal. The modernisation was done by GitHub Copilot with Marko providing the instructions.
 
+**Try it in your browser → https://marko-ullgren.github.io/simple3d/**
+
 ---
 
 ## Packages
@@ -32,7 +34,48 @@ A from-scratch rewrite targeting Java 21, keeping the same geometry and interact
 
 ---
 
-## How to compile
+## Web app (`src/web/`)
+
+A faithful TypeScript port of the modern Java app that runs entirely in the browser — no server, no plugins.
+
+**Live:** https://marko-ullgren.github.io/simple3d/
+
+### What's inside
+
+| File | Role |
+|---|---|
+| `src/model/Point3D.ts` | 3D point with the same rotation math as the Java version |
+| `src/model/Body.ts` | Async `.body` file loader (`fetch`); same ambient-occlusion bake |
+| `src/render/StarField.ts` | Deterministic star layout via a BigInt port of Java's `Random(42)` |
+| `src/render/ElasticEffect.ts` | Spring-damper dent; `setInterval`-based; RGBA pixel displacement |
+| `src/render/Renderer.ts` | Gouraud scanline rasteriser into `ImageData`; cap polygons via Canvas 2D paths; 2× SSAA |
+| `src/control/AnimationController.ts` | Angular momentum + friction decay |
+| `src/main.ts` | Wires everything; `requestAnimationFrame` render loop; `<select>` menus |
+
+Shape files are shared with the Java app — `vite-plugin-static-copy` pulls them from `src/main/resources/` at build time; no duplication in version control.
+
+### Run locally
+
+Node 22 is required (use `nvm`):
+
+```bash
+cd src/web
+nvm use        # picks Node 22 from .nvmrc
+npm install
+npm run dev    # → http://localhost:5173
+```
+
+### Deployment
+
+Every push to `master` that touches `src/web/` or the `.body` shape files triggers a GitHub Actions workflow (`.github/workflows/deploy-pages.yml`) that:
+
+1. Installs dependencies with `npm ci`
+2. Runs `npm run build` (TypeScript compile + Vite bundle)
+3. Publishes `src/web/dist/` to GitHub Pages
+
+The live URL updates within about a minute of merging.
+
+---
 
 ```
 mvn compile
