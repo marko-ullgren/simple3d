@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.ullgren.modern.simple3d.model.Body;
+import com.ullgren.modern.simple3d.model.BodyLoader;
 import com.ullgren.modern.simple3d.model.Point3D;
 import com.ullgren.modern.simple3d.render.ElasticEffect;
 import com.ullgren.modern.simple3d.render.Renderer;
@@ -21,34 +22,34 @@ public class BodyTest {
 
   @Test
   public void loadBody_triangle_createsBody() {
-    Body body = Body.loadBody(RES + "test_triangle.body", Color.red);
+    Body body = BodyLoader.load(RES + "test_triangle.body", Color.red);
     assertEquals(3, body.pointCount());
     assertEquals(1, body.faceCount());
   }
 
   @Test
   public void loadBody_setsColour() {
-    Body body = Body.loadBody(RES + "test_triangle.body", Color.green);
+    Body body = BodyLoader.load(RES + "test_triangle.body", Color.green);
     assertEquals(Color.green, body.getColour());
   }
 
   @Test
   public void loadBody_commentsAndBlanksIgnored() {
-    Body body = Body.loadBody(RES + "test_triangle_with_comments.body", Color.blue);
+    Body body = BodyLoader.load(RES + "test_triangle_with_comments.body", Color.blue);
     assertEquals(3, body.pointCount());
     assertEquals(1, body.faceCount());
   }
 
   @Test
   public void loadMuBody_has36PointsAnd20Faces() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     assertEquals(36, body.pointCount());
     assertEquals(20, body.faceCount());
   }
 
   @Test
   public void loadCubeBody_has8PointsAnd6Faces() {
-    Body body = Body.loadBody(RES + "cube.body", Color.blue);
+    Body body = BodyLoader.load(RES + "cube.body", Color.blue);
     assertEquals(8, body.pointCount());
     assertEquals(6, body.faceCount());
   }
@@ -59,58 +60,47 @@ public class BodyTest {
 
   @Test
   public void loadBody_missingResource_throwsIllegalArgument() {
-    assertThrows(IllegalArgumentException.class, () -> Body.loadBody("/nonexistent.body", Color.blue));
-  }
+    assertThrows(IllegalArgumentException.class, () -> BodyLoader.load("/nonexistent.body", Color.blue));  }
 
   @Test
   public void loadBody_dataBeforeSection_throwsIllegalArgument() {
-    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_data_before_section.body", Color.blue));
-  }
+    assertThrows(IllegalArgumentException.class, () -> BodyLoader.load(RES + "test_data_before_section.body", Color.blue));  }
 
   @Test
   public void loadBody_pointWithTwoCoords_throwsIllegalArgument() {
-    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_malformed_point_two_coords.body", Color.blue));
-  }
+    assertThrows(IllegalArgumentException.class, () -> BodyLoader.load(RES + "test_malformed_point_two_coords.body", Color.blue));  }
 
   @Test
   public void loadBody_pointWithFourCoords_throwsIllegalArgument() {
-    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_malformed_point_four_coords.body", Color.blue));
-  }
+    assertThrows(IllegalArgumentException.class, () -> BodyLoader.load(RES + "test_malformed_point_four_coords.body", Color.blue));  }
 
   @Test
   public void loadBody_pointWithNonNumericCoord_throwsNumberFormatException() {
-    assertThrows(NumberFormatException.class, () -> Body.loadBody(RES + "test_malformed_point_nonnumeric.body", Color.blue));
-  }
+    assertThrows(NumberFormatException.class, () -> BodyLoader.load(RES + "test_malformed_point_nonnumeric.body", Color.blue));  }
 
   @Test
   public void loadBody_faceWithTwoIndices_throwsIllegalArgument() {
-    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_malformed_face_two_indices.body", Color.blue));
-  }
+    assertThrows(IllegalArgumentException.class, () -> BodyLoader.load(RES + "test_malformed_face_two_indices.body", Color.blue));  }
 
   @Test
   public void loadBody_faceWithNegativeIndex_throwsIllegalArgument() {
-    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_malformed_face_negative_index.body", Color.blue));
-  }
+    assertThrows(IllegalArgumentException.class, () -> BodyLoader.load(RES + "test_malformed_face_negative_index.body", Color.blue));  }
 
   @Test
   public void loadBody_faceIndexOutOfBounds_throwsIllegalArgument() {
-    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_malformed_face_oob.body", Color.blue));
-  }
+    assertThrows(IllegalArgumentException.class, () -> BodyLoader.load(RES + "test_malformed_face_oob.body", Color.blue));  }
 
   @Test
   public void loadBody_faceWithNonNumericIndex_throwsNumberFormatException() {
-    assertThrows(NumberFormatException.class, () -> Body.loadBody(RES + "test_malformed_face_nonnumeric.body", Color.blue));
-  }
+    assertThrows(NumberFormatException.class, () -> BodyLoader.load(RES + "test_malformed_face_nonnumeric.body", Color.blue));  }
 
   @Test
   public void loadBody_noPointsDefined_throwsIllegalArgument() {
-    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_no_points.body", Color.blue));
-  }
+    assertThrows(IllegalArgumentException.class, () -> BodyLoader.load(RES + "test_no_points.body", Color.blue));  }
 
   @Test
   public void loadBody_noFacesDefined_throwsIllegalArgument() {
-    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_no_faces.body", Color.blue));
-  }
+    assertThrows(IllegalArgumentException.class, () -> BodyLoader.load(RES + "test_no_faces.body", Color.blue));  }
 
   // -------------------------------------------------------------------------
   // Colour
@@ -118,7 +108,7 @@ public class BodyTest {
 
   @Test
   public void setColour_updatesColour() {
-    Body body = Body.loadBody(RES + "test_triangle.body", Color.blue);
+    Body body = BodyLoader.load(RES + "test_triangle.body", Color.blue);
     body.setColour(Color.red);
     assertEquals(Color.red, body.getColour());
   }
@@ -129,7 +119,7 @@ public class BodyTest {
 
   @Test
   public void render_withTriangleFace_doesNotThrow() {
-    Body body = Body.loadBody(RES + "test_triangle.body", Color.blue);
+    Body body = BodyLoader.load(RES + "test_triangle.body", Color.blue);
     Graphics g = newGraphics(400, 400);
     new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
     g.dispose();
@@ -137,7 +127,7 @@ public class BodyTest {
 
   @Test
   public void render_withQuadFace_doesNotThrow() {
-    Body body = Body.loadBody(RES + "test_quad.body", Color.blue);
+    Body body = BodyLoader.load(RES + "test_quad.body", Color.blue);
     Graphics g = newGraphics(400, 400);
     new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
     g.dispose();
@@ -145,7 +135,7 @@ public class BodyTest {
 
   @Test
   public void render_withCapPolygon_doesNotThrow() {
-    Body body = Body.loadBody(RES + "test_cap.body", Color.blue);
+    Body body = BodyLoader.load(RES + "test_cap.body", Color.blue);
     Graphics g = newGraphics(400, 400);
     new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
     g.dispose();
@@ -153,7 +143,7 @@ public class BodyTest {
 
   @Test
   public void render_backFacedBody_producesNoPixels() {
-    Body body = Body.loadBody(RES + "test_backfacing.body", Color.white);
+    Body body = BodyLoader.load(RES + "test_backfacing.body", Color.white);
     BufferedImage img = newImage(400, 400);
     new Renderer().render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
     // All pixels should remain transparent/black — nothing was drawn
@@ -166,7 +156,7 @@ public class BodyTest {
 
   @Test
   public void render_frontFacedBody_producesNonBlackPixels() {
-    Body body = Body.loadBody(RES + "test_triangle.body", Color.white);
+    Body body = BodyLoader.load(RES + "test_triangle.body", Color.white);
     BufferedImage img = newImage(400, 400);
     new Renderer().render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
     assertTrue(hasNonZeroPixel(img), "Expected some pixels to be drawn");
@@ -174,7 +164,7 @@ public class BodyTest {
 
   @Test
   public void render_muBody_doesNotThrow() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
     Graphics g = newGraphics(400, 400);
     new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
@@ -183,7 +173,7 @@ public class BodyTest {
 
   @Test
   public void render_cubeBody_doesNotThrow() {
-    Body body = Body.loadBody(RES + "cube.body", Color.blue);
+    Body body = BodyLoader.load(RES + "cube.body", Color.blue);
     Graphics g = newGraphics(400, 400);
     new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
     g.dispose();
@@ -195,7 +185,7 @@ public class BodyTest {
 
   @Test
   public void renderer_consecutiveRenders_produceSameOutput() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
     Renderer renderer = new Renderer();
     BufferedImage img = newImage(400, 400);
@@ -210,7 +200,7 @@ public class BodyTest {
 
   @Test
   public void renderer_afterColourChange_reflectsNewColour() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
     Renderer renderer = new Renderer();
     long blue = pixelSum(renderWith(renderer, body, 400, 400));
@@ -222,9 +212,9 @@ public class BodyTest {
   @Test
   public void renderer_afterBodySwap_reflectsNewBody() {
     Renderer renderer = new Renderer();
-    Body mu = Body.loadBody(RES + "mu.body", Color.blue);
+    Body mu = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) mu.rotateZY();
-    Body cube = Body.loadBody(RES + "cube.body", Color.blue);
+    Body cube = BodyLoader.load(RES + "cube.body", Color.blue);
     long muPixels   = pixelSum(renderWith(renderer, mu,   400, 400));
     long cubePixels = pixelSum(renderWith(renderer, cube, 400, 400));
     assertNotEquals(muPixels, cubePixels, "MU and cube should produce different renders");
@@ -232,7 +222,7 @@ public class BodyTest {
 
   @Test
   public void renderer_afterSizeChange_doesNotThrow() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
     Renderer renderer = new Renderer();
     renderer.render(body, newGraphics(400, 400), 200, 200, 1.0, 400, 400);
@@ -245,10 +235,10 @@ public class BodyTest {
 
   @Test
   public void rotateXZ_changesOrientation() {
-    Body before = Body.loadBody(RES + "mu.body", Color.blue);
+    Body before = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) before.rotateZY();
 
-    Body after = Body.loadBody(RES + "mu.body", Color.blue);
+    Body after = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) after.rotateZY();
     for (int i = 0; i < 15; i++) after.rotateXZ(); // 45°
 
@@ -257,8 +247,8 @@ public class BodyTest {
 
   @Test
   public void rotateZY_changesOrientation() {
-    Body before = Body.loadBody(RES + "mu.body", Color.blue);
-    Body after  = Body.loadBody(RES + "mu.body", Color.blue);
+    Body before = BodyLoader.load(RES + "mu.body", Color.blue);
+    Body after  = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 15; i++) after.rotateZY(); // 45°
 
     assertDifferentPixels(before, after);
@@ -266,7 +256,7 @@ public class BodyTest {
 
   @Test
   public void rotateZY_roundTrip_120steps_restoresOrientation() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
 
     BufferedImage before = drawToImage(body);
@@ -283,7 +273,7 @@ public class BodyTest {
 
   @Test
   public void rotateAllMethods_doNotThrow() {
-    Body body = Body.loadBody(RES + "cube.body", Color.blue);
+    Body body = BodyLoader.load(RES + "cube.body", Color.blue);
     body.rotateXZ();
     body.rotateYZ();
     body.rotateZX();
@@ -292,7 +282,7 @@ public class BodyTest {
 
   @Test
   public void rotateYZ_doubleAngle_rotatingByZeroDegreesDoesNothing() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
     long before = pixelSum(drawToImage(body));
     body.rotateYZ(0.0);
@@ -301,15 +291,15 @@ public class BodyTest {
 
   @Test
   public void rotateYZ_doubleAngle_changesOrientation() {
-    Body before = Body.loadBody(RES + "mu.body", Color.blue);
-    Body after  = Body.loadBody(RES + "mu.body", Color.blue);
+    Body before = BodyLoader.load(RES + "mu.body", Color.blue);
+    Body after  = BodyLoader.load(RES + "mu.body", Color.blue);
     after.rotateYZ(Math.PI / 4);
     assertDifferentPixels(before, after);
   }
 
   @Test
   public void rotateYZ_doubleAngle_negativeAngleIsInverse() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
     long before = pixelSum(drawToImage(body));
     body.rotateYZ(Math.PI / 6);
@@ -320,9 +310,9 @@ public class BodyTest {
 
   @Test
   public void rotateYZ_doubleAngle_matchesNoArgAtRotationAngle() {
-    Body withDouble = Body.loadBody(RES + "mu.body", Color.blue);
+    Body withDouble = BodyLoader.load(RES + "mu.body", Color.blue);
     withDouble.rotateYZ(Point3D.ROTATION_ANGLE);
-    Body withNoArg = Body.loadBody(RES + "mu.body", Color.blue);
+    Body withNoArg = BodyLoader.load(RES + "mu.body", Color.blue);
     withNoArg.rotateYZ();
     assertEquals(pixelSum(drawToImage(withDouble)), pixelSum(drawToImage(withNoArg)),
         "rotateYZ(ROTATION_ANGLE) and rotateYZ() should produce identical results");
@@ -330,7 +320,7 @@ public class BodyTest {
 
   @Test
   public void rotateZX_doubleAngle_rotatingByZeroDegreesDoesNothing() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
     long before = pixelSum(drawToImage(body));
     body.rotateZX(0.0);
@@ -339,15 +329,15 @@ public class BodyTest {
 
   @Test
   public void rotateZX_doubleAngle_changesOrientation() {
-    Body before = Body.loadBody(RES + "mu.body", Color.blue);
-    Body after  = Body.loadBody(RES + "mu.body", Color.blue);
+    Body before = BodyLoader.load(RES + "mu.body", Color.blue);
+    Body after  = BodyLoader.load(RES + "mu.body", Color.blue);
     after.rotateZX(Math.PI / 4);
     assertDifferentPixels(before, after);
   }
 
   @Test
   public void rotateZX_doubleAngle_negativeAngleIsInverse() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
     long before = pixelSum(drawToImage(body));
     body.rotateZX(Math.PI / 6);
@@ -360,9 +350,9 @@ public class BodyTest {
 
   @Test
   public void rotateZX_doubleAngle_matchesNoArgAtRotationAngle() {
-    Body withDouble = Body.loadBody(RES + "mu.body", Color.blue);
+    Body withDouble = BodyLoader.load(RES + "mu.body", Color.blue);
     withDouble.rotateZX(Point3D.ROTATION_ANGLE);
-    Body withNoArg = Body.loadBody(RES + "mu.body", Color.blue);
+    Body withNoArg = BodyLoader.load(RES + "mu.body", Color.blue);
     withNoArg.rotateZX();
     assertEquals(pixelSum(drawToImage(withDouble)), pixelSum(drawToImage(withNoArg)),
         "rotateZX(ROTATION_ANGLE) and rotateZX() should produce identical results");
@@ -374,7 +364,7 @@ public class BodyTest {
 
   @Test
   public void rotateXZ_doubleAngle_rotatingByZeroDegreesDoesNothing() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
 
     long before = pixelSum(drawToImage(body));
@@ -386,10 +376,10 @@ public class BodyTest {
 
   @Test
   public void rotateXZ_doubleAngle_changesOrientation() {
-    Body before = Body.loadBody(RES + "mu.body", Color.blue);
+    Body before = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) before.rotateZY();
 
-    Body after = Body.loadBody(RES + "mu.body", Color.blue);
+    Body after = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) after.rotateZY();
     after.rotateXZ(Math.PI / 4); // 45°
 
@@ -398,7 +388,7 @@ public class BodyTest {
 
   @Test
   public void rotateXZ_doubleAngle_negativeAngleIsInverse() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
 
     long before = pixelSum(drawToImage(body));
@@ -412,11 +402,11 @@ public class BodyTest {
 
   @Test
   public void rotateXZ_doubleAngle_matchesNoArgAtRotationAngle() {
-    Body withDouble = Body.loadBody(RES + "mu.body", Color.blue);
+    Body withDouble = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) withDouble.rotateZY();
     withDouble.rotateXZ(Point3D.ROTATION_ANGLE);
 
-    Body withNoArg = Body.loadBody(RES + "mu.body", Color.blue);
+    Body withNoArg = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) withNoArg.rotateZY();
     withNoArg.rotateXZ();
 
@@ -426,7 +416,7 @@ public class BodyTest {
 
   @Test
   public void rotateZY_doubleAngle_rotatingByZeroDegreesDoesNothing() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
 
     long before = pixelSum(drawToImage(body));
@@ -438,9 +428,9 @@ public class BodyTest {
 
   @Test
   public void rotateZY_doubleAngle_changesOrientation() {
-    Body before = Body.loadBody(RES + "mu.body", Color.blue);
+    Body before = BodyLoader.load(RES + "mu.body", Color.blue);
 
-    Body after = Body.loadBody(RES + "mu.body", Color.blue);
+    Body after = BodyLoader.load(RES + "mu.body", Color.blue);
     after.rotateZY(Math.PI / 4); // 45°
 
     assertDifferentPixels(before, after);
@@ -448,7 +438,7 @@ public class BodyTest {
 
   @Test
   public void rotateZY_doubleAngle_negativeAngleIsInverse() {
-    Body body = Body.loadBody(RES + "mu.body", Color.blue);
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) body.rotateZY();
 
     long before = pixelSum(drawToImage(body));
@@ -462,11 +452,11 @@ public class BodyTest {
 
   @Test
   public void rotateZY_doubleAngle_matchesNoArgAtRotationAngle() {
-    Body withDouble = Body.loadBody(RES + "mu.body", Color.blue);
+    Body withDouble = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) withDouble.rotateZY();
     withDouble.rotateZY(Point3D.ROTATION_ANGLE);
 
-    Body withNoArg = Body.loadBody(RES + "mu.body", Color.blue);
+    Body withNoArg = BodyLoader.load(RES + "mu.body", Color.blue);
     for (int i = 0; i < 60; i++) withNoArg.rotateZY();
     withNoArg.rotateZY();
 
@@ -600,7 +590,7 @@ public class BodyTest {
   @Test
   public void ambientOcclusion_flatTriangle_isZero() {
     // A single flat face: all three vertex normals agree → AO should be 0.
-    Body body = Body.loadBody(RES + "test_triangle.body", Color.red);
+    Body body = BodyLoader.load(RES + "test_triangle.body", Color.red);
     for (int i = 0; i < body.pointCount(); i++) {
       assertEquals(0.0f, body.getVertexAO(i), 1e-6f,
           "flat triangle vertex " + i + " should have AO = 0");
@@ -611,7 +601,7 @@ public class BodyTest {
   public void ambientOcclusion_cubeCorner_isPositive() {
     // A cube has 3 perpendicular faces meeting at each corner.
     // Adjacent face normals diverge → mean normal length < 1 → AO > 0.
-    Body body = Body.loadBody(RES + "test_cube.body", Color.red);
+    Body body = BodyLoader.load(RES + "test_cube.body", Color.red);
     boolean anyPositive = false;
     for (int i = 0; i < body.pointCount(); i++) {
       if (body.getVertexAO(i) > 0f) { anyPositive = true; break; }
@@ -621,7 +611,7 @@ public class BodyTest {
 
   @Test
   public void ambientOcclusion_allValuesInRange() {
-    Body body = Body.loadBody(RES + "test_cube.body", Color.red);
+    Body body = BodyLoader.load(RES + "test_cube.body", Color.red);
     for (int i = 0; i < body.pointCount(); i++) {
       float ao = body.getVertexAO(i);
       assertTrue(ao >= 0f, "AO[" + i + "] must be >= 0");
