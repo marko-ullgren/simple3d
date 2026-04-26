@@ -1,12 +1,16 @@
 # simple3d
 
-A 3D viewer that renders an interactive rotating solid body. Originally written by Marko Ullgren in January 1998 as a Java 1.1 applet displaying a **wireframe** object, and gently converted to a standalone application in August 2020. The repository now contains two packages side by side: the untouched vintage wireframe original and a fully modernised rewrite that renders a **solid body** with flat shading and hidden-surface removal. The modernisation was done by GitHub Copilot with Marko providing the instructions.
+A 3D viewer that renders an interactive rotating solid body. Originally written by Marko Ullgren in January 1998 as a Java 1.1 applet displaying a **wireframe** object, and gently converted to a standalone application in August 2020. 
 
-**Try it in your browser → https://marko-ullgren.github.io/simple3d/**
+The repository now contains two Java packages side by side: the untouched vintage wireframe original and a **fully modernised rewrite** that renders a solid body with flat shading and hidden-surface removal. The modernisation was done by with the help of GitHub Copilot.
+
+The repository also contains a TypeScript port of the modern Java rewrite.
+
+**Try the TypeScript port in your browser → https://marko-ullgren.github.io/simple3d/**
 
 ---
 
-## Packages
+## Java Packages
 
 ### `com.ullgren.vintage.simple3d` — the 1998 original
 
@@ -14,7 +18,7 @@ A preserved piece of 1990s Java. Deliberately left as-is, including deprecated A
 
 ### `com.ullgren.modern.simple3d` — the modernised rewrite
 
-A from-scratch rewrite targeting Java 21, keeping the same geometry and interaction model but replacing everything else:
+A complete rewrite targeting Java 21, keeping the same geometry and interaction model but replacing almost everything else:
 
 - **Swing** instead of AWT (`JFrame`, `JPanel`, `JMenuBar`, `Timer`)
 - **EDT-safe initialisation** via `EventQueue.invokeLater()`
@@ -76,12 +80,13 @@ Every push to `master` that touches `src/web/` or the `.body` shape files trigge
 The live URL updates within about a minute of merging.
 
 ---
-
+## Java app (`src/main/`)
+### Compile locally
 ```
 mvn compile
 ```
 
-## How to run tests
+### How to run tests (`src/test/`)
 
 Tests cover `Point3D` (constructors, rotation invariants, round-trips) and `Body` (loading, error handling, draw branch coverage, rotation):
 
@@ -102,7 +107,7 @@ mvn test
 >   com.ullgren.modern.simple3d.BodyTest
 > ```
 
-## How to run
+### How to run
 
 **Modern app (Java 21, solid rendering):**
 ```
@@ -114,7 +119,7 @@ mvn exec:exec@modern
 mvn exec:java@vintage
 ```
 
-## Controls
+## Controls (both Web and Java apps)
 
 - **Click** in a quadrant to spin the object in that direction; click again to add more momentum or in the opposite quadrant to slow it down
 - **Scroll wheel** to zoom in and out (zoom range: 0.1× – 10×)
