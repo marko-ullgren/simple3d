@@ -69,6 +69,20 @@ npm install
 npm run dev    # → http://localhost:5173
 ```
 
+### Tests
+
+61 unit tests cover the model and control layers:
+
+```bash
+cd src/web
+nvm use
+npm install
+npm test        # run once
+npm run test:watch  # re-run on file changes
+```
+
+Tests are co-located with source files (`*.test.ts`). The rendering pipeline (`Renderer.ts`, `StarField.ts`) is verified visually rather than by unit tests.
+
 ### Deployment
 
 Every push to `master` that touches `src/web/` or the `.body` shape files triggers a GitHub Actions workflow (`.github/workflows/deploy-pages.yml`) that:
