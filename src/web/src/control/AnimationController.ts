@@ -26,6 +26,13 @@ export class AnimationController {
     this.body = body;
   }
 
+  /** Seeds the controller with initial momentum and starts the animation immediately. */
+  kickstart(xz: number, yz: number): void {
+    this.angularMomentumXZ = xz;
+    this.angularMomentumYZ = yz;
+    this.start();
+  }
+
   /**
    * Applies a rotational impulse based on where the user clicked relative to the
    * canvas centre.  Clicks within the {@code sensitivity} dead-zone have no effect.
