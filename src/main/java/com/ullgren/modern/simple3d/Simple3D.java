@@ -61,6 +61,7 @@ public class Simple3D {
     elasticEffect = new ElasticEffect(canvas::repaint);
     renderer.setEffect(elasticEffect);
     animationController = new AnimationController(body, canvas::repaint);
+    animationController.kickstart(0.5, 0.5);
 
     frame.setTitle("A Simple 3D application (c) Marko Ullgren 1998-2026");
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

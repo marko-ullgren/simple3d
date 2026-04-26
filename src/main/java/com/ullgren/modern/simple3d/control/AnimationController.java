@@ -43,6 +43,19 @@ public class AnimationController {
   }
 
   /**
+   * Seeds the controller with an initial angular momentum and starts the animation immediately.
+   * Intended to give the object a slow idle rotation when the app first opens.
+   *
+   * @param xz initial momentum on the XZ axis
+   * @param yz initial momentum on the ZY axis
+   */
+  public void kickstart(double xz, double yz) {
+    angularMomentumXZ = xz;
+    angularMomentumYZ = yz;
+    start();
+  }
+
+  /**
    * Applies a rotational impulse based on where the user clicked relative to the canvas centre.
    * Clicks outside the {@code sensitivity} dead-zone increment the angular momentum on the
    * corresponding axis; the animation starts or stops accordingly.
