@@ -65,6 +65,10 @@ export class Body {
     return Body.parse(text, colour, url);
   }
 
+  static fromText(text: string, colour: Colour): Body {
+    return Body.parse(text, colour, '<inline>');
+  }
+
   private static parse(text: string, colour: Colour, sourceHint: string): Body {
     const points: Point3D[] = [];
     const faces:  number[][] = [];
