@@ -124,6 +124,7 @@ async function init(): Promise<void> {
   await loadShape('mu', COLOURS.blue);
 
   animCtrl = new AnimationController(body, repaint);
+  animCtrl.kickstart(0.5, 0.5);
 }
 
 init().catch(console.error);
