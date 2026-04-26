@@ -3,8 +3,8 @@ package com.ullgren.modern.simple3d;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.ullgren.modern.simple3d.model.Body;
 import com.ullgren.modern.simple3d.model.Point3D;
@@ -57,59 +57,59 @@ public class BodyTest {
   // Loading — invalid files
   // -------------------------------------------------------------------------
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void loadBody_missingResource_throwsIllegalArgument() {
-    Body.loadBody("/nonexistent.body", Color.blue);
+    assertThrows(IllegalArgumentException.class, () -> Body.loadBody("/nonexistent.body", Color.blue));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void loadBody_dataBeforeSection_throwsIllegalArgument() {
-    Body.loadBody(RES + "test_data_before_section.body", Color.blue);
+    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_data_before_section.body", Color.blue));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void loadBody_pointWithTwoCoords_throwsIllegalArgument() {
-    Body.loadBody(RES + "test_malformed_point_two_coords.body", Color.blue);
+    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_malformed_point_two_coords.body", Color.blue));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void loadBody_pointWithFourCoords_throwsIllegalArgument() {
-    Body.loadBody(RES + "test_malformed_point_four_coords.body", Color.blue);
+    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_malformed_point_four_coords.body", Color.blue));
   }
 
-  @Test(expected = NumberFormatException.class)
+  @Test
   public void loadBody_pointWithNonNumericCoord_throwsNumberFormatException() {
-    Body.loadBody(RES + "test_malformed_point_nonnumeric.body", Color.blue);
+    assertThrows(NumberFormatException.class, () -> Body.loadBody(RES + "test_malformed_point_nonnumeric.body", Color.blue));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void loadBody_faceWithTwoIndices_throwsIllegalArgument() {
-    Body.loadBody(RES + "test_malformed_face_two_indices.body", Color.blue);
+    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_malformed_face_two_indices.body", Color.blue));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void loadBody_faceWithNegativeIndex_throwsIllegalArgument() {
-    Body.loadBody(RES + "test_malformed_face_negative_index.body", Color.blue);
+    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_malformed_face_negative_index.body", Color.blue));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void loadBody_faceIndexOutOfBounds_throwsIllegalArgument() {
-    Body.loadBody(RES + "test_malformed_face_oob.body", Color.blue);
+    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_malformed_face_oob.body", Color.blue));
   }
 
-  @Test(expected = NumberFormatException.class)
+  @Test
   public void loadBody_faceWithNonNumericIndex_throwsNumberFormatException() {
-    Body.loadBody(RES + "test_malformed_face_nonnumeric.body", Color.blue);
+    assertThrows(NumberFormatException.class, () -> Body.loadBody(RES + "test_malformed_face_nonnumeric.body", Color.blue));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void loadBody_noPointsDefined_throwsIllegalArgument() {
-    Body.loadBody(RES + "test_no_points.body", Color.blue);
+    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_no_points.body", Color.blue));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void loadBody_noFacesDefined_throwsIllegalArgument() {
-    Body.loadBody(RES + "test_no_faces.body", Color.blue);
+    assertThrows(IllegalArgumentException.class, () -> Body.loadBody(RES + "test_no_faces.body", Color.blue));
   }
 
   // -------------------------------------------------------------------------
@@ -159,7 +159,7 @@ public class BodyTest {
     // All pixels should remain transparent/black — nothing was drawn
     for (int y = 0; y < 400; y++) {
       for (int x = 0; x < 400; x++) {
-        assertEquals("Expected no pixels drawn for back-facing body", 0, img.getRGB(x, y));
+        assertEquals(0, img.getRGB(x, y), "Expected no pixels drawn for back-facing body");
       }
     }
   }
@@ -169,7 +169,7 @@ public class BodyTest {
     Body body = Body.loadBody(RES + "test_triangle.body", Color.white);
     BufferedImage img = newImage(400, 400);
     new Renderer().render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
-    assertTrue("Expected some pixels to be drawn", hasNonZeroPixel(img));
+    assertTrue(hasNonZeroPixel(img), "Expected some pixels to be drawn");
   }
 
   @Test
@@ -204,8 +204,8 @@ public class BodyTest {
     img = newImage(400, 400);
     renderer.render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
     long second = pixelSum(img);
-    assertEquals("Same renderer, same body, same size should produce identical output",
-        first, second);
+    assertEquals(first, second,
+        "Same renderer, same body, same size should produce identical output");
   }
 
   @Test
@@ -216,7 +216,7 @@ public class BodyTest {
     long blue = pixelSum(renderWith(renderer, body, 400, 400));
     body.setColour(Color.red);
     long red = pixelSum(renderWith(renderer, body, 400, 400));
-    assertNotEquals("Render output should change after colour change", blue, red);
+    assertNotEquals(blue, red, "Render output should change after colour change");
   }
 
   @Test
@@ -227,7 +227,7 @@ public class BodyTest {
     Body cube = Body.loadBody(RES + "cube.body", Color.blue);
     long muPixels   = pixelSum(renderWith(renderer, mu,   400, 400));
     long cubePixels = pixelSum(renderWith(renderer, cube, 400, 400));
-    assertNotEquals("MU and cube should produce different renders", muPixels, cubePixels);
+    assertNotEquals(muPixels, cubePixels, "MU and cube should produce different renders");
   }
 
   @Test
@@ -278,7 +278,7 @@ public class BodyTest {
     long sumBefore = pixelSum(before);
     long sumAfter  = pixelSum(after);
     double diff = Math.abs(sumBefore - sumAfter) / (double) Math.max(1, sumBefore);
-    assertTrue("Round-trip pixel sums differ by more than 1%: " + diff, diff < 0.01);
+    assertTrue(diff < 0.01, "Round-trip pixel sums differ by more than 1%: " + diff);
   }
 
   @Test
@@ -314,8 +314,8 @@ public class BodyTest {
     long before = pixelSum(drawToImage(body));
     body.rotateYZ(Math.PI / 6);
     body.rotateYZ(-Math.PI / 6);
-    assertEquals("rotateYZ(a) then rotateYZ(-a) should restore orientation", before,
-        pixelSum(drawToImage(body)));
+    assertEquals(before, pixelSum(drawToImage(body)),
+        "rotateYZ(a) then rotateYZ(-a) should restore orientation");
   }
 
   @Test
@@ -324,8 +324,8 @@ public class BodyTest {
     withDouble.rotateYZ(Point3D.ROTATION_ANGLE);
     Body withNoArg = Body.loadBody(RES + "mu.body", Color.blue);
     withNoArg.rotateYZ();
-    assertEquals("rotateYZ(ROTATION_ANGLE) and rotateYZ() should produce identical results",
-        pixelSum(drawToImage(withDouble)), pixelSum(drawToImage(withNoArg)));
+    assertEquals(pixelSum(drawToImage(withDouble)), pixelSum(drawToImage(withNoArg)),
+        "rotateYZ(ROTATION_ANGLE) and rotateYZ() should produce identical results");
   }
 
   @Test
@@ -354,8 +354,8 @@ public class BodyTest {
     body.rotateZX(-Math.PI / 6);
     long after = pixelSum(drawToImage(body));
     double diff = Math.abs(before - after) / (double) Math.max(1, before);
-    assertTrue("rotateZX(a) then rotateZX(-a) should restore orientation (diff=" + diff + ")",
-        diff < 0.01);
+    assertTrue(diff < 0.01,
+        "rotateZX(a) then rotateZX(-a) should restore orientation (diff=" + diff + ")");
   }
 
   @Test
@@ -364,8 +364,8 @@ public class BodyTest {
     withDouble.rotateZX(Point3D.ROTATION_ANGLE);
     Body withNoArg = Body.loadBody(RES + "mu.body", Color.blue);
     withNoArg.rotateZX();
-    assertEquals("rotateZX(ROTATION_ANGLE) and rotateZX() should produce identical results",
-        pixelSum(drawToImage(withDouble)), pixelSum(drawToImage(withNoArg)));
+    assertEquals(pixelSum(drawToImage(withDouble)), pixelSum(drawToImage(withNoArg)),
+        "rotateZX(ROTATION_ANGLE) and rotateZX() should produce identical results");
   }
 
   // -------------------------------------------------------------------------
@@ -381,7 +381,7 @@ public class BodyTest {
     body.rotateXZ(0.0);
     long after = pixelSum(drawToImage(body));
 
-    assertEquals("rotateXZ(0) should leave the body unchanged", before, after);
+    assertEquals(before, after, "rotateXZ(0) should leave the body unchanged");
   }
 
   @Test
@@ -406,8 +406,8 @@ public class BodyTest {
     body.rotateXZ(-Math.PI / 6);
     long after = pixelSum(drawToImage(body));
 
-    assertEquals("rotateXZ(a) followed by rotateXZ(-a) should restore orientation",
-        before, after);
+    assertEquals(before, after,
+        "rotateXZ(a) followed by rotateXZ(-a) should restore orientation");
   }
 
   @Test
@@ -420,8 +420,8 @@ public class BodyTest {
     for (int i = 0; i < 60; i++) withNoArg.rotateZY();
     withNoArg.rotateXZ();
 
-    assertEquals("rotateXZ(ROTATION_ANGLE) and rotateXZ() should produce identical results",
-        pixelSum(drawToImage(withDouble)), pixelSum(drawToImage(withNoArg)));
+    assertEquals(pixelSum(drawToImage(withDouble)), pixelSum(drawToImage(withNoArg)),
+        "rotateXZ(ROTATION_ANGLE) and rotateXZ() should produce identical results");
   }
 
   @Test
@@ -433,7 +433,7 @@ public class BodyTest {
     body.rotateZY(0.0);
     long after = pixelSum(drawToImage(body));
 
-    assertEquals("rotateZY(0) should leave the body unchanged", before, after);
+    assertEquals(before, after, "rotateZY(0) should leave the body unchanged");
   }
 
   @Test
@@ -456,8 +456,8 @@ public class BodyTest {
     body.rotateZY(-Math.PI / 6);
     long after = pixelSum(drawToImage(body));
 
-    assertEquals("rotateZY(a) followed by rotateZY(-a) should restore orientation",
-        before, after);
+    assertEquals(before, after,
+        "rotateZY(a) followed by rotateZY(-a) should restore orientation");
   }
 
   @Test
@@ -470,8 +470,8 @@ public class BodyTest {
     for (int i = 0; i < 60; i++) withNoArg.rotateZY();
     withNoArg.rotateZY();
 
-    assertEquals("rotateZY(ROTATION_ANGLE) and rotateZY() should produce identical results",
-        pixelSum(drawToImage(withDouble)), pixelSum(drawToImage(withNoArg)));
+    assertEquals(pixelSum(drawToImage(withDouble)), pixelSum(drawToImage(withNoArg)),
+        "rotateZY(ROTATION_ANGLE) and rotateZY() should produce identical results");
   }
 
   // -------------------------------------------------------------------------
@@ -491,9 +491,9 @@ public class BodyTest {
     effect.applyToPixels(src, dst, w, h);
 
     // Corners are well outside RADIUS=80 from centre (100,100)
-    assertEquals("Top-left corner should be unchanged", src[0], dst[0]);
-    assertEquals("Bottom-right corner should be unchanged",
-        src[(h - 1) * w + (w - 1)], dst[(h - 1) * w + (w - 1)]);
+    assertEquals(src[0], dst[0], "Top-left corner should be unchanged");
+    assertEquals(src[(h - 1) * w + (w - 1)], dst[(h - 1) * w + (w - 1)],
+        "Bottom-right corner should be unchanged");
   }
 
   @Test
@@ -516,7 +516,7 @@ public class BodyTest {
     // At (150+20, 150) — distance 20px, well inside RADIUS=38 — pixel should be displaced
     int originalBlue = src[150 * w + 170] & 0xFF;
     int displacedBlue = dst[150 * w + 170] & 0xFF;
-    assertNotEquals("Pixel inside radius should be displaced", originalBlue, displacedBlue);
+    assertNotEquals(originalBlue, displacedBlue, "Pixel inside radius should be displaced");
   }
 
   @Test
@@ -532,15 +532,15 @@ public class BodyTest {
     effect.applyToPixels(src, dst, w, h);
 
     // d==0 at the click centre — the loop skips it, leaving dst unchanged
-    assertEquals("Centre pixel must not be displaced", src[100 * w + 100], dst[100 * w + 100]);
+    assertEquals(src[100 * w + 100], dst[100 * w + 100], "Centre pixel must not be displaced");
   }
 
   @Test
   public void elasticEffect_isActive_afterDent() {
     ElasticEffect effect = new ElasticEffect(() -> {});
-    assertFalse("Should be inactive before first dent", effect.isActive());
+    assertFalse(effect.isActive(), "Should be inactive before first dent");
     effect.dent(50, 50);
-    assertTrue("Should be active immediately after dent", effect.isActive());
+    assertTrue(effect.isActive(), "Should be active immediately after dent");
   }
 
   // -------------------------------------------------------------------------
@@ -589,8 +589,8 @@ public class BodyTest {
   private static void assertDifferentPixels(Body a, Body b) {
     long sumA = pixelSum(drawToImage(a));
     long sumB = pixelSum(drawToImage(b));
-    assertNotEquals("Expected bodies at different orientations to produce different renders",
-        sumA, sumB);
+    assertNotEquals(sumA, sumB,
+        "Expected bodies at different orientations to produce different renders");
   }
 
   // -------------------------------------------------------------------------
@@ -602,8 +602,8 @@ public class BodyTest {
     // A single flat face: all three vertex normals agree → AO should be 0.
     Body body = Body.loadBody(RES + "test_triangle.body", Color.red);
     for (int i = 0; i < body.pointCount(); i++) {
-      assertEquals("flat triangle vertex " + i + " should have AO = 0",
-          0.0f, body.getVertexAO(i), 1e-6f);
+      assertEquals(0.0f, body.getVertexAO(i), 1e-6f,
+          "flat triangle vertex " + i + " should have AO = 0");
     }
   }
 
@@ -616,7 +616,7 @@ public class BodyTest {
     for (int i = 0; i < body.pointCount(); i++) {
       if (body.getVertexAO(i) > 0f) { anyPositive = true; break; }
     }
-    assertTrue("cube corner vertices should have AO > 0", anyPositive);
+    assertTrue(anyPositive, "cube corner vertices should have AO > 0");
   }
 
   @Test
@@ -624,8 +624,8 @@ public class BodyTest {
     Body body = Body.loadBody(RES + "test_cube.body", Color.red);
     for (int i = 0; i < body.pointCount(); i++) {
       float ao = body.getVertexAO(i);
-      assertTrue("AO[" + i + "] must be >= 0", ao >= 0f);
-      assertTrue("AO[" + i + "] must be <= 1", ao <= 1.0f);
+      assertTrue(ao >= 0f, "AO[" + i + "] must be >= 0");
+      assertTrue(ao <= 1.0f, "AO[" + i + "] must be <= 1");
     }
   }
 }
