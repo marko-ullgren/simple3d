@@ -16,6 +16,7 @@ import javax.swing.JPanel;
 
 import com.ullgren.modern.simple3d.control.AnimationController;
 import com.ullgren.modern.simple3d.model.Body;
+import com.ullgren.modern.simple3d.model.BodyLoader;
 import com.ullgren.modern.simple3d.render.ElasticEffect;
 import com.ullgren.modern.simple3d.render.Renderer;
 import com.ullgren.modern.simple3d.render.StarField;
@@ -73,13 +74,13 @@ public class Simple3D {
   }
 
   private void loadShape(String resource) {
-    body = Body.loadBody(resource, body.getColour());
+    body = BodyLoader.load(resource, body.getColour());
     animationController.setBody(body);
     canvas.repaint();
   }
 
   private Body buildBody() {
-    Body b = Body.loadBody("/com/ullgren/modern/simple3d/mu.body", Color.blue);
+    Body b = BodyLoader.load("/com/ullgren/modern/simple3d/mu.body", Color.blue);
     for (int i = 0; i < 60; i++) b.rotateZY();
     return b;
   }
@@ -118,7 +119,7 @@ public class Simple3D {
     menuBar.add(colourMenu);
 
     muItem.addActionListener(e -> {
-      body = Body.loadBody("/com/ullgren/modern/simple3d/mu.body", body.getColour());
+      body = BodyLoader.load("/com/ullgren/modern/simple3d/mu.body", body.getColour());
       for (int i = 0; i < 60; i++) body.rotateZY();
       animationController.setBody(body);
       canvas.repaint();
@@ -128,7 +129,7 @@ public class Simple3D {
     octahedronItem.addActionListener(e  -> loadShape("/com/ullgren/modern/simple3d/octahedron.body"));
     icosahedronItem.addActionListener(e -> loadShape("/com/ullgren/modern/simple3d/icosahedron.body"));
     torusItem.addActionListener(e -> {
-      body = Body.loadBody("/com/ullgren/modern/simple3d/torus.body", body.getColour());
+      body = BodyLoader.load("/com/ullgren/modern/simple3d/torus.body", body.getColour());
       // Tilt slightly so the tube depth is visible from the start
       for (int i = 0; i < 5; i++) body.rotateXZ();
       for (int i = 0; i < 5; i++) body.rotateYZ();
