@@ -66,6 +66,20 @@ public class Renderer {
     SPEC_HZ = hz / hLen;
   }
 
+  // --- Rim lighting -----------------------------------------------------------
+
+  /**
+   * Rim (back-edge) light intensity at a pure silhouette face ({@code N·V = 0}).
+   * Set to 0 to disable rim lighting entirely.
+   */
+  private static final double RIM_STRENGTH = 0.45;
+  /**
+   * Controls how quickly the rim falls off from the silhouette inward.
+   * Higher values → tighter, more focused rim band; lower → wider glow.
+   * Typical: 2 (wide) … 5 (narrow).
+   */
+  private static final double RIM_POWER    = 2.5;
+
   // ---------------------------------------------------------------------------
 
   /** Cached off-screen buffer; recreated only when the canvas size changes. */
@@ -158,14 +172,16 @@ public class Renderer {
         double shade;
         if (fnLen > 0) {
           double nx = fn[0] / fnLen, ny = fn[1] / fnLen, nz = fn[2] / fnLen;
-          double diffuse = Math.max(0, -nz);
+          double ndotV = -nz;
+          double diffuse = Math.max(0, ndotV);
           double avgAO = 0;
           for (int idx : face) avgAO += body.getVertexAO(idx);
           avgAO /= face.length;
           double aoAmbient = AMBIENT * (1.0 - AO_STRENGTH * avgAO);
           double ndotH = nx * SPEC_HX + ny * SPEC_HY + nz * SPEC_HZ;
           double specular = ndotH > 0 ? SPECULAR_STRENGTH * Math.pow(ndotH, SHININESS) : 0;
-          shade = Math.max(aoAmbient, diffuse) + specular;
+          double rim = RIM_STRENGTH * Math.pow(Math.max(0, 1.0 - ndotV), RIM_POWER);
+          shade = Math.max(aoAmbient, diffuse) + specular + rim;
         } else {
           shade = AMBIENT;
         }
@@ -294,10 +310,12 @@ public class Renderer {
     if (len == 0) return ambient;
 
     double nnx = snx / len, nny = sny / len, nnz = snz / len;
-    double diffuse  = Math.max(0, -nnz);                          // N · (0,0,−1)
+    double ndotV    = -nnz;                                       // N · (0,0,−1)
+    double diffuse  = Math.max(0, ndotV);
     double ndotH    = nnx * SPEC_HX + nny * SPEC_HY + nnz * SPEC_HZ;
     double specular = ndotH > 0 ? SPECULAR_STRENGTH * Math.pow(ndotH, SHININESS) : 0;
-    return Math.max(ambient, diffuse) + specular;
+    double rim      = RIM_STRENGTH * Math.pow(Math.max(0, 1.0 - ndotV), RIM_POWER);
+    return Math.max(ambient, diffuse) + specular + rim;
   }
 
   /**
