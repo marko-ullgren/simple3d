@@ -101,89 +101,71 @@ public class Simple3D {
 
   private JMenuBar buildMenuBar() {
     JMenuBar menuBar = new JMenuBar();
+    menuBar.add(buildBodyMenu());
+    menuBar.add(buildColourMenu());
+    menuBar.add(buildEffectMenu());
+    return menuBar;
+  }
 
-    JMenu bodyMenu = new JMenu("Body");
-    JMenuItem muItem          = new JMenuItem("MU");
-    JMenuItem cubeItem        = new JMenuItem("Cube");
-    JMenuItem tetrahedronItem = new JMenuItem("Tetrahedron");
-    JMenuItem octahedronItem  = new JMenuItem("Octahedron");
-    JMenuItem icosahedronItem = new JMenuItem("Icosahedron");
-    JMenuItem torusItem       = new JMenuItem("Torus");
-    JMenuItem pyramidItem     = new JMenuItem("Pyramid");
-    JMenuItem quitItem        = new JMenuItem("Quit");
-    bodyMenu.add(muItem);
-    bodyMenu.addSeparator();
-    bodyMenu.add(cubeItem);
-    bodyMenu.add(tetrahedronItem);
-    bodyMenu.add(octahedronItem);
-    bodyMenu.add(icosahedronItem);
-    bodyMenu.add(torusItem);
-    bodyMenu.add(pyramidItem);
-    bodyMenu.addSeparator();
-    bodyMenu.add(quitItem);
-    menuBar.add(bodyMenu);
+  private JMenu buildBodyMenu() {
+    JMenu menu = new JMenu("Body");
+    ButtonGroup group = new ButtonGroup();
 
-    JMenu colourMenu  = new JMenu("Colour");
-    JMenuItem blueItem  = new JMenuItem("Blue");
-    JMenuItem redItem   = new JMenuItem("Red");
-    JMenuItem greenItem = new JMenuItem("Green");
-    colourMenu.add(blueItem);
-    colourMenu.add(redItem);
-    colourMenu.add(greenItem);
-    menuBar.add(colourMenu);
-
-    muItem.addActionListener(e -> {
+    menu.add(radioItem("MU", true, group, () -> {
       body = BodyLoader.load("/com/ullgren/modern/simple3d/mu.body", body.getColour());
       for (int i = 0; i < 60; i++) body.rotateZY();
       animationController.setBody(body);
       canvas.repaint();
-    });
-    cubeItem.addActionListener(e -> loadShape("/com/ullgren/modern/simple3d/cube.body"));
-    tetrahedronItem.addActionListener(e -> loadShape("/com/ullgren/modern/simple3d/tetrahedron.body"));
-    octahedronItem.addActionListener(e  -> loadShape("/com/ullgren/modern/simple3d/octahedron.body"));
-    icosahedronItem.addActionListener(e -> loadShape("/com/ullgren/modern/simple3d/icosahedron.body"));
-    torusItem.addActionListener(e -> {
+    }));
+    menu.addSeparator();
+    menu.add(radioItem("Cube",        false, group, () -> loadShape("/com/ullgren/modern/simple3d/cube.body")));
+    menu.add(radioItem("Tetrahedron", false, group, () -> loadShape("/com/ullgren/modern/simple3d/tetrahedron.body")));
+    menu.add(radioItem("Octahedron",  false, group, () -> loadShape("/com/ullgren/modern/simple3d/octahedron.body")));
+    menu.add(radioItem("Icosahedron", false, group, () -> loadShape("/com/ullgren/modern/simple3d/icosahedron.body")));
+    menu.add(radioItem("Torus",       false, group, () -> {
       body = BodyLoader.load("/com/ullgren/modern/simple3d/torus.body", body.getColour());
-      // Tilt slightly so the tube depth is visible from the start
       for (int i = 0; i < 5; i++) body.rotateXZ();
       for (int i = 0; i < 5; i++) body.rotateYZ();
       animationController.setBody(body);
       canvas.repaint();
-    });
-    pyramidItem.addActionListener(e     -> loadShape("/com/ullgren/modern/simple3d/pyramid.body"));
+    }));
+    menu.add(radioItem("Pyramid",     false, group, () -> loadShape("/com/ullgren/modern/simple3d/pyramid.body")));
+    menu.addSeparator();
+
+    JMenuItem quitItem = new JMenuItem("Quit");
     quitItem.addActionListener(e -> System.exit(0));
+    menu.add(quitItem);
 
-    blueItem.addActionListener(e  -> { body.setColour(Color.blue);  canvas.repaint(); });
-    redItem.addActionListener(e   -> { body.setColour(Color.red);   canvas.repaint(); });
-    greenItem.addActionListener(e -> { body.setColour(Color.green); canvas.repaint(); });
+    return menu;
+  }
 
-    JMenu effectMenu = new JMenu("Effect");
-    JRadioButtonMenuItem elasticItem   = new JRadioButtonMenuItem("Elastic Dent", true);
-    JRadioButtonMenuItem rippleItem    = new JRadioButtonMenuItem("Ripple");
-    JRadioButtonMenuItem vortexItem    = new JRadioButtonMenuItem("Vortex");
-    JRadioButtonMenuItem shockwaveItem = new JRadioButtonMenuItem("Shockwave");
-    JRadioButtonMenuItem noEffectItem  = new JRadioButtonMenuItem("No Effect");
-    ButtonGroup effectGroup = new ButtonGroup();
-    effectGroup.add(elasticItem);
-    effectGroup.add(rippleItem);
-    effectGroup.add(vortexItem);
-    effectGroup.add(shockwaveItem);
-    effectGroup.add(noEffectItem);
-    effectMenu.add(elasticItem);
-    effectMenu.add(rippleItem);
-    effectMenu.add(vortexItem);
-    effectMenu.add(shockwaveItem);
-    effectMenu.addSeparator();
-    effectMenu.add(noEffectItem);
-    menuBar.add(effectMenu);
+  private JMenu buildColourMenu() {
+    JMenu menu = new JMenu("Colour");
+    ButtonGroup group = new ButtonGroup();
+    menu.add(radioItem("Blue",  true,  group, () -> { body.setColour(Color.blue);  canvas.repaint(); }));
+    menu.add(radioItem("Red",   false, group, () -> { body.setColour(Color.red);   canvas.repaint(); }));
+    menu.add(radioItem("Green", false, group, () -> { body.setColour(Color.green); canvas.repaint(); }));
+    return menu;
+  }
 
-    elasticItem.addActionListener(e   -> switchEffect(new ElasticEffect(canvas::repaint)));
-    rippleItem.addActionListener(e    -> switchEffect(new RippleEffect(canvas::repaint)));
-    vortexItem.addActionListener(e    -> switchEffect(new VortexEffect(canvas::repaint)));
-    shockwaveItem.addActionListener(e -> switchEffect(new ShockwaveEffect(canvas::repaint)));
-    noEffectItem.addActionListener(e  -> switchEffect(new NoEffect()));
+  private JMenu buildEffectMenu() {
+    JMenu menu = new JMenu("Effect");
+    ButtonGroup group = new ButtonGroup();
+    menu.add(radioItem("Elastic Dent", true,  group, () -> switchEffect(new ElasticEffect(canvas::repaint))));
+    menu.add(radioItem("Ripple",       false, group, () -> switchEffect(new RippleEffect(canvas::repaint))));
+    menu.add(radioItem("Vortex",       false, group, () -> switchEffect(new VortexEffect(canvas::repaint))));
+    menu.add(radioItem("Shockwave",    false, group, () -> switchEffect(new ShockwaveEffect(canvas::repaint))));
+    menu.addSeparator();
+    menu.add(radioItem("No Effect",    false, group, () -> switchEffect(new NoEffect())));
+    return menu;
+  }
 
-    return menuBar;
+  /** Creates a {@link JRadioButtonMenuItem}, registers it in {@code group}, and wires {@code action}. */
+  private JRadioButtonMenuItem radioItem(String label, boolean selected, ButtonGroup group, Runnable action) {
+    JRadioButtonMenuItem item = new JRadioButtonMenuItem(label, selected);
+    group.add(item);
+    item.addActionListener(e -> action.run());
+    return item;
   }
 
   private JPanel buildCanvas() {
