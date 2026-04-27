@@ -17,6 +17,7 @@ import javax.swing.JPanel;
 import com.ullgren.modern.simple3d.control.AnimationController;
 import com.ullgren.modern.simple3d.model.Body;
 import com.ullgren.modern.simple3d.model.BodyLoader;
+import com.ullgren.modern.simple3d.render.Effect;
 import com.ullgren.modern.simple3d.render.ElasticEffect;
 import com.ullgren.modern.simple3d.render.Renderer;
 import com.ullgren.modern.simple3d.render.StarField;
@@ -45,7 +46,7 @@ public class Simple3D {
 
   private Body   body;
   private JPanel canvas;
-  private ElasticEffect elasticEffect;
+  private Effect elasticEffect;
   private int    canvasWidth  = WIDTH;
   private int    canvasHeight = HEIGHT;
   private double zoom = 1.0;
@@ -176,7 +177,7 @@ public class Simple3D {
       public void mousePressed(MouseEvent e) {
         animationController.applyImpulse(
             e.getX(), e.getY(), canvasWidth / 2, canvasHeight / 2, SENSITIVITY);
-        elasticEffect.dent(e.getX(), e.getY());
+        elasticEffect.trigger(e.getX(), e.getY());
       }
     });
 

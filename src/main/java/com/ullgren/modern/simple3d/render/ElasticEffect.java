@@ -5,7 +5,7 @@ import javax.swing.Timer;
 /**
  * Image-space elastic dent effect.
  * <p>
- * When {@link #dent(int, int)} is called the effect applies a radial pixel-displacement to
+ * When {@link #trigger(int, int)} is called the effect applies a radial pixel-displacement to
  * the already-rendered frame via {@link #applyToPixels}. A spring-damper drives the
  * displacement scalar from an initial inward compression (positive) through a small outward
  * overshoot (negative) back to zero, creating the feel of touching a soft, elastic object.
@@ -13,7 +13,7 @@ import javax.swing.Timer;
  * The effect owns its own 60 fps Swing {@link Timer} and stops automatically once the spring
  * has settled. It is entirely in screen-space, so it works regardless of mesh vertex density.
  */
-public class ElasticEffect {
+public class ElasticEffect implements Effect {
 
   private static final float STIFFNESS   = 350f;
   private static final float DAMPING     = 22f;
@@ -52,7 +52,8 @@ public class ElasticEffect {
    * Triggers a dent centred on the given screen coordinates.
    * Restarts the animation if already in progress.
    */
-  public void dent(int x, int y) {
+  @Override
+  public void trigger(int x, int y) {
     cx           = x;
     cy           = y;
     displacement = INIT_DISP;
@@ -62,6 +63,7 @@ public class ElasticEffect {
   }
 
   /** Returns {@code true} while the spring is still in motion. */
+  @Override
   public boolean isActive() {
     return timer.isRunning();
   }
@@ -78,6 +80,7 @@ public class ElasticEffect {
    * @param w   image width in pixels
    * @param h   image height in pixels
    */
+  @Override
   public void applyToPixels(int[] src, int[] dst, int w, int h) {
     int x0 = Math.max(0,     cx - RADIUS);
     int x1 = Math.min(w - 1, cx + RADIUS);
