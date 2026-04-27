@@ -152,9 +152,9 @@ public class Simple3D {
         super.paintComponent(g);
         starField.draw(g, canvasWidth, canvasHeight);
         double scale = zoom * Math.min(canvasWidth, canvasHeight)
-            / (double) Math.min(Simple3D.WIDTH, Simple3D.HEIGHT)
-            * morphController.getMorphScale();
-        renderer.render(morphController.getActiveBody(), g, canvasWidth / 2, canvasHeight / 2, scale, canvasWidth, canvasHeight);
+            / (double) Math.min(Simple3D.WIDTH, Simple3D.HEIGHT);
+        renderer.render(morphController.getActiveBody(), g, canvasWidth / 2, canvasHeight / 2,
+            scale, morphController.getMorphFactor(), canvasWidth, canvasHeight);
       }
     };
 

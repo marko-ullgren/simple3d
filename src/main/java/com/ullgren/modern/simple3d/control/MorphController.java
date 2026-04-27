@@ -54,8 +54,14 @@ public class MorphController {
   /** The body that should be rendered and rotated this frame. */
   public Body getActiveBody() { return activeBody; }
 
-  /** Scale factor in [0..1] to multiply into the render scale. 1.0 at rest, dips to 0 mid-morph. */
-  public double getMorphScale() { return morphScale; }
+  /**
+   * Geometry morph factor in [0..1].
+   * <p>
+   * 1.0 = body at its full shape; 0.0 = body fully collapsed to a sphere of its average
+   * vertex radius (the mid-morph intermediate state).  Pass this to
+   * {@link com.ullgren.modern.simple3d.render.Renderer#render} to drive the elastic deformation.
+   */
+  public double getMorphFactor() { return morphScale; }
 
   /**
    * Start transitioning to {@code target}.

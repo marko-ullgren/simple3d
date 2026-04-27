@@ -11,7 +11,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.ullgren.modern.simple3d.model.Body;
-import com.ullgren.modern.simple3d.model.Point3D;
 
 /**
  * Renders a {@link Body} onto a {@link Graphics} context using Gouraud shading for side faces
@@ -82,6 +81,21 @@ public class Renderer {
   public void render(Body body, Graphics g,
                      int centerX, int centerY, double scale,
                      int canvasW, int canvasH) {
+    render(body, g, centerX, centerY, scale, 1.0, canvasW, canvasH);
+  }
+
+  /**
+   * Renders {@code body} with an elastic geometry morph applied.
+   *
+   * @param morphFactor 1.0 = body at its natural shape; 0.0 = every vertex collapsed to the
+   *                    body's average-radius sphere (the mid-morph blob). Values in between
+   *                    produce a smooth elastic deformation. Face normals and shading are
+   *                    computed from the morphed positions, so lighting remains correct
+   *                    throughout the transition.
+   */
+  public void render(Body body, Graphics g,
+                     int centerX, int centerY, double scale, double morphFactor,
+                     int canvasW, int canvasH) {
     // All geometry is rendered at 2× resolution for anti-aliasing.
     int    hiW     = 2 * canvasW;
     int    hiH     = 2 * canvasH;
@@ -90,23 +104,70 @@ public class Renderer {
     int    hiCY    = 2 * centerY;
 
     int n = body.pointCount();
-    int[] sx = new int[n];
-    int[] sy = new int[n];
+    int[]    sx = new int[n];
+    int[]    sy = new int[n];
     double[] sz = new double[n];
+    // Morphed 3D positions — equals actual positions when morphFactor == 1.0.
+    double[] mx = new double[n];
+    double[] my = new double[n];
+    double[] mz = new double[n];
+
+    if (morphFactor < 1.0) {
+      // Compute centroid and average radius so every vertex can be spherified.
+      double centX = 0, centY = 0, centZ = 0;
+      for (int i = 0; i < n; i++) {
+        centX += body.pointAt(i).getX();
+        centY += body.pointAt(i).getY();
+        centZ += body.pointAt(i).getZ();
+      }
+      centX /= n; centY /= n; centZ /= n;
+
+      double avgR = 0;
+      for (int i = 0; i < n; i++) {
+        double dx = body.pointAt(i).getX() - centX;
+        double dy = body.pointAt(i).getY() - centY;
+        double dz = body.pointAt(i).getZ() - centZ;
+        avgR += Math.sqrt(dx * dx + dy * dy + dz * dz);
+      }
+      avgR /= n;
+
+      for (int i = 0; i < n; i++) {
+        double px = body.pointAt(i).getX();
+        double py = body.pointAt(i).getY();
+        double pz = body.pointAt(i).getZ();
+        double dx = px - centX, dy = py - centY, dz = pz - centZ;
+        double len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        // Spherified position: same direction from centroid, but at average radius.
+        double smx = len > 0 ? centX + dx / len * avgR : centX;
+        double smy = len > 0 ? centY + dy / len * avgR : centY;
+        double smz = len > 0 ? centZ + dz / len * avgR : centZ;
+        // Blend: morphFactor=1 → original shape; morphFactor=0 → sphere.
+        mx[i] = smx + (px - smx) * morphFactor;
+        my[i] = smy + (py - smy) * morphFactor;
+        mz[i] = smz + (pz - smz) * morphFactor;
+      }
+    } else {
+      for (int i = 0; i < n; i++) {
+        mx[i] = body.pointAt(i).getX();
+        my[i] = body.pointAt(i).getY();
+        mz[i] = body.pointAt(i).getZ();
+      }
+    }
+
+    // Project morphed positions.
     for (int i = 0; i < n; i++) {
-      Point3D p = body.pointAt(i);
-      double f = 1.0 - PROJECTION_FACTOR * p.getZ();
-      sx[i] = (int) (hiScale * p.getX() * f) + hiCX;
-      sy[i] = (int) (hiScale * p.getY() * f) + hiCY;
-      sz[i] = p.getZ();
+      double f = 1.0 - PROJECTION_FACTOR * mz[i];
+      sx[i] = (int) (hiScale * mx[i] * f) + hiCX;
+      sy[i] = (int) (hiScale * my[i] * f) + hiCY;
+      sz[i] = mz[i];
     }
 
     int fc = body.faceCount();
 
-    // Pre-compute per-face normals.
+    // Pre-compute per-face normals from the morphed positions.
     double[][] faceNormals = new double[fc][];
     for (int fi = 0; fi < fc; fi++) {
-      faceNormals[fi] = computeFaceNormal(body, body.faceAt(fi));
+      faceNormals[fi] = computeFaceNormal(mx, my, mz, body.faceAt(fi));
     }
 
     // Build vertex-to-face adjacency for smooth normal computation.
@@ -146,7 +207,7 @@ public class Renderer {
       } else {
         float[] cs = new float[face.length];
         for (int ci = 0; ci < face.length; ci++) {
-          cs[ci] = (float) computeCornerShade(body, face[ci], fi, faceNormals, vertexFaces,
+          cs[ci] = (float) computeCornerShade(face[ci], fi, faceNormals, vertexFaces,
               body.getVertexAO(face[ci]));
         }
         for (int i = 1; i < face.length - 1; i++) {
@@ -214,14 +275,12 @@ public class Renderer {
 
   /**
    * Returns the (unnormalised) face normal as [nx, ny, nz] computed from the first three
-   * vertices of {@code face} using the cross product.
+   * vertices of {@code face} using the cross product of the morphed position arrays.
    */
-  private double[] computeFaceNormal(Body body, int[] face) {
-    Point3D p0 = body.pointAt(face[0]);
-    Point3D p1 = body.pointAt(face[1]);
-    Point3D p2 = body.pointAt(face[2]);
-    double ax = p1.getX() - p0.getX(), ay = p1.getY() - p0.getY(), az = p1.getZ() - p0.getZ();
-    double bx = p2.getX() - p0.getX(), by = p2.getY() - p0.getY(), bz = p2.getZ() - p0.getZ();
+  private double[] computeFaceNormal(double[] mx, double[] my, double[] mz, int[] face) {
+    int i0 = face[0], i1 = face[1], i2 = face[2];
+    double ax = mx[i1] - mx[i0], ay = my[i1] - my[i0], az = mz[i1] - mz[i0];
+    double bx = mx[i2] - mx[i0], by = my[i2] - my[i0], bz = mz[i2] - mz[i0];
     return new double[]{ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx};
   }
 
@@ -230,7 +289,7 @@ public class Renderer {
    * Adjacent faces whose normals are within {@link #SMOOTH_THRESHOLD_COS} of the current face
    * contribute to the average, preserving hard edges.
    */
-  private double computeCornerShade(Body body, int vIdx, int faceIdx,
+  private double computeCornerShade(int vIdx, int faceIdx,
       double[][] faceNormals, List<Integer>[] vertexFaces, float ao) {
     double ambient = AMBIENT * (1.0 - AO_STRENGTH * ao);
     double[] fn = faceNormals[faceIdx];
