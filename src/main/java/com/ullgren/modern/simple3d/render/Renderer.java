@@ -41,6 +41,33 @@ public class Renderer {
   /** Adjacent faces whose normalised normals dot-product exceeds this share smooth shading. */
   private static final double SMOOTH_THRESHOLD_COS = Math.cos(Math.toRadians(60.0));
 
+  // --- Specular (Blinn-Phong) -------------------------------------------------
+
+  /**
+   * Shininess exponent — higher = smaller, sharper highlight.
+   * Typical values: 16 (soft/metallic), 40 (plastic), 120 (polished).
+   */
+  private static final double SHININESS         = 40.0;
+  /** Specular intensity multiplier [0..1+]. 0 = off, 1 = full white at peak. */
+  private static final double SPECULAR_STRENGTH = 0.55;
+  /**
+   * Blinn-Phong half-vector H = normalise(L + V), precomputed once.
+   * L = normalise(1, 1, −2) (upper-right off-axis light).
+   * V = (0, 0, −1) (viewer along −Z).
+   */
+  private static final double SPEC_HX, SPEC_HY, SPEC_HZ;
+  static {
+    double lx = 1, ly = 1, lz = -2;
+    double lLen = Math.sqrt(lx * lx + ly * ly + lz * lz);
+    double hx = lx / lLen, hy = ly / lLen, hz = lz / lLen - 1.0; // + V=(0,0,-1)
+    double hLen = Math.sqrt(hx * hx + hy * hy + hz * hz);
+    SPEC_HX = hx / hLen;
+    SPEC_HY = hy / hLen;
+    SPEC_HZ = hz / hLen;
+  }
+
+  // ---------------------------------------------------------------------------
+
   /** Cached off-screen buffer; recreated only when the canvas size changes. */
   private BufferedImage canvasImage;
   private int           canvasImageW, canvasImageH;
@@ -128,13 +155,20 @@ public class Renderer {
 
       if (face.length > 4) {
         double fnLen = Math.sqrt(fn[0] * fn[0] + fn[1] * fn[1] + fn[2] * fn[2]);
-        double shade = Math.max(AMBIENT, fnLen > 0 ? -fn[2] / fnLen : AMBIENT);
-        // Apply average AO of the cap's vertices to the flat ambient floor.
-        double avgAO = 0;
-        for (int idx : face) avgAO += body.getVertexAO(idx);
-        avgAO /= face.length;
-        double aoAmbient = AMBIENT * (1.0 - AO_STRENGTH * avgAO);
-        shade = Math.max(aoAmbient, shade);
+        double shade;
+        if (fnLen > 0) {
+          double nx = fn[0] / fnLen, ny = fn[1] / fnLen, nz = fn[2] / fnLen;
+          double diffuse = Math.max(0, -nz);
+          double avgAO = 0;
+          for (int idx : face) avgAO += body.getVertexAO(idx);
+          avgAO /= face.length;
+          double aoAmbient = AMBIENT * (1.0 - AO_STRENGTH * avgAO);
+          double ndotH = nx * SPEC_HX + ny * SPEC_HY + nz * SPEC_HZ;
+          double specular = ndotH > 0 ? SPECULAR_STRENGTH * Math.pow(ndotH, SHININESS) : 0;
+          shade = Math.max(aoAmbient, diffuse) + specular;
+        } else {
+          shade = AMBIENT;
+        }
         Color faceColour = shadedColour(colour, shade);
         double avgZ = 0;
         for (int idx : face) avgZ += sz[idx];
@@ -228,7 +262,12 @@ public class Renderer {
   /**
    * Computes a smooth shading value for vertex {@code vIdx} in face {@code faceIdx}.
    * Adjacent faces whose normals are within {@link #SMOOTH_THRESHOLD_COS} of the current face
-   * contribute to the average, preserving hard edges.
+   * contribute to the average normal, preserving hard edges.
+   * <p>
+   * The returned value is {@code max(aoAmbient, diffuse) + specular}, where diffuse uses a
+   * headlight at (0, 0, −1) and specular uses Blinn-Phong with the half-vector
+   * {@link #SPEC_HX}/{@link #SPEC_HY}/{@link #SPEC_HZ}.  Values above 1.0 are allowed;
+   * the rasteriser clamps channel bytes to 255.
    */
   private double computeCornerShade(Body body, int vIdx, int faceIdx,
       double[][] faceNormals, List<Integer>[] vertexFaces, float ao) {
@@ -252,7 +291,13 @@ public class Renderer {
       }
     }
     double len = Math.sqrt(snx * snx + sny * sny + snz * snz);
-    return len > 0 ? Math.max(ambient, -snz / len) : ambient;
+    if (len == 0) return ambient;
+
+    double nnx = snx / len, nny = sny / len, nnz = snz / len;
+    double diffuse  = Math.max(0, -nnz);                          // N · (0,0,−1)
+    double ndotH    = nnx * SPEC_HX + nny * SPEC_HY + nnz * SPEC_HZ;
+    double specular = ndotH > 0 ? SPECULAR_STRENGTH * Math.pow(ndotH, SHININESS) : 0;
+    return Math.max(ambient, diffuse) + specular;
   }
 
   /**
