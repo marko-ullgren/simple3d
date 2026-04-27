@@ -1,4 +1,4 @@
-package com.ullgren.modern.simple3d.render;
+package com.ullgren.modern.simple3d.render.effect;
 
 /**
  * Null-object implementation of {@link Effect}: does nothing.

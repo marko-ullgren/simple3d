@@ -12,6 +12,7 @@ import java.util.List;
 
 import com.ullgren.modern.simple3d.model.Body;
 import com.ullgren.modern.simple3d.model.Point3D;
+import com.ullgren.modern.simple3d.render.effect.Effect;
 
 /**
  * Renders a {@link Body} onto a {@link Graphics} context using Gouraud shading for side faces

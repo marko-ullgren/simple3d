@@ -1,4 +1,4 @@
-package com.ullgren.modern.simple3d.render;
+package com.ullgren.modern.simple3d.render.effect;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;

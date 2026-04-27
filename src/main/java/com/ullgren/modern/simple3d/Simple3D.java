@@ -19,14 +19,14 @@ import javax.swing.JRadioButtonMenuItem;
 import com.ullgren.modern.simple3d.control.AnimationController;
 import com.ullgren.modern.simple3d.model.Body;
 import com.ullgren.modern.simple3d.model.BodyLoader;
-import com.ullgren.modern.simple3d.render.Effect;
-import com.ullgren.modern.simple3d.render.ElasticEffect;
-import com.ullgren.modern.simple3d.render.NoEffect;
+import com.ullgren.modern.simple3d.render.effect.Effect;
+import com.ullgren.modern.simple3d.render.effect.ElasticEffect;
+import com.ullgren.modern.simple3d.render.effect.NoEffect;
 import com.ullgren.modern.simple3d.render.Renderer;
-import com.ullgren.modern.simple3d.render.RippleEffect;
-import com.ullgren.modern.simple3d.render.ShockwaveEffect;
+import com.ullgren.modern.simple3d.render.effect.RippleEffect;
+import com.ullgren.modern.simple3d.render.effect.ShockwaveEffect;
 import com.ullgren.modern.simple3d.render.StarField;
-import com.ullgren.modern.simple3d.render.VortexEffect;
+import com.ullgren.modern.simple3d.render.effect.VortexEffect;
 
 /**
  * Simple3D renders a three-dimensional solid body that rotates on screen. Clicking different
