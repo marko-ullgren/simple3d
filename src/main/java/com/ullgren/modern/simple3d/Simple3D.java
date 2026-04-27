@@ -15,6 +15,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 
 import com.ullgren.modern.simple3d.control.AnimationController;
+import com.ullgren.modern.simple3d.control.MorphController;
 import com.ullgren.modern.simple3d.model.Body;
 import com.ullgren.modern.simple3d.model.BodyLoader;
 import com.ullgren.modern.simple3d.render.ElasticEffect;
@@ -43,7 +44,6 @@ public class Simple3D {
   private final StarField starField = new StarField();
   private final Renderer  renderer  = new Renderer();
 
-  private Body   body;
   private JPanel canvas;
   private ElasticEffect elasticEffect;
   private int    canvasWidth  = WIDTH;
@@ -51,17 +51,19 @@ public class Simple3D {
   private double zoom = 1.0;
 
   private AnimationController animationController;
+  private MorphController     morphController;
 
   public static void main(String[] args) {
     EventQueue.invokeLater(() -> new Simple3D().init());
   }
 
   public void init() {
-    body   = buildBody();
+    Body initial = buildBody();
     canvas = buildCanvas();
     elasticEffect = new ElasticEffect(canvas::repaint);
     renderer.setEffect(elasticEffect);
-    animationController = new AnimationController(body, canvas::repaint);
+    animationController = new AnimationController(initial, canvas::repaint);
+    morphController     = new MorphController(initial, animationController::setBody, canvas::repaint);
     animationController.kickstart(0.5, 0.5);
 
     frame.setTitle("A Simple 3D application (c) Marko Ullgren 1998-2026");
@@ -74,9 +76,8 @@ public class Simple3D {
   }
 
   private void loadShape(String resource) {
-    body = BodyLoader.load(resource, body.getColour());
-    animationController.setBody(body);
-    canvas.repaint();
+    Body newBody = BodyLoader.load(resource, morphController.getActiveBody().getColour());
+    morphController.morphTo(newBody);
   }
 
   private Body buildBody() {
@@ -119,29 +120,27 @@ public class Simple3D {
     menuBar.add(colourMenu);
 
     muItem.addActionListener(e -> {
-      body = BodyLoader.load("/com/ullgren/modern/simple3d/mu.body", body.getColour());
-      for (int i = 0; i < 60; i++) body.rotateZY();
-      animationController.setBody(body);
-      canvas.repaint();
+      Body newBody = BodyLoader.load("/com/ullgren/modern/simple3d/mu.body", morphController.getActiveBody().getColour());
+      for (int i = 0; i < 60; i++) newBody.rotateZY();
+      morphController.morphTo(newBody);
     });
     cubeItem.addActionListener(e -> loadShape("/com/ullgren/modern/simple3d/cube.body"));
     tetrahedronItem.addActionListener(e -> loadShape("/com/ullgren/modern/simple3d/tetrahedron.body"));
     octahedronItem.addActionListener(e  -> loadShape("/com/ullgren/modern/simple3d/octahedron.body"));
     icosahedronItem.addActionListener(e -> loadShape("/com/ullgren/modern/simple3d/icosahedron.body"));
     torusItem.addActionListener(e -> {
-      body = BodyLoader.load("/com/ullgren/modern/simple3d/torus.body", body.getColour());
+      Body newBody = BodyLoader.load("/com/ullgren/modern/simple3d/torus.body", morphController.getActiveBody().getColour());
       // Tilt slightly so the tube depth is visible from the start
-      for (int i = 0; i < 5; i++) body.rotateXZ();
-      for (int i = 0; i < 5; i++) body.rotateYZ();
-      animationController.setBody(body);
-      canvas.repaint();
+      for (int i = 0; i < 5; i++) newBody.rotateXZ();
+      for (int i = 0; i < 5; i++) newBody.rotateYZ();
+      morphController.morphTo(newBody);
     });
     pyramidItem.addActionListener(e     -> loadShape("/com/ullgren/modern/simple3d/pyramid.body"));
     quitItem.addActionListener(e -> System.exit(0));
 
-    blueItem.addActionListener(e  -> { body.setColour(Color.blue);  canvas.repaint(); });
-    redItem.addActionListener(e   -> { body.setColour(Color.red);   canvas.repaint(); });
-    greenItem.addActionListener(e -> { body.setColour(Color.green); canvas.repaint(); });
+    blueItem.addActionListener(e  -> { morphController.setColour(Color.blue);  canvas.repaint(); });
+    redItem.addActionListener(e   -> { morphController.setColour(Color.red);   canvas.repaint(); });
+    greenItem.addActionListener(e -> { morphController.setColour(Color.green); canvas.repaint(); });
 
     return menuBar;
   }
@@ -153,8 +152,9 @@ public class Simple3D {
         super.paintComponent(g);
         starField.draw(g, canvasWidth, canvasHeight);
         double scale = zoom * Math.min(canvasWidth, canvasHeight)
-            / (double) Math.min(Simple3D.WIDTH, Simple3D.HEIGHT);
-        renderer.render(body, g, canvasWidth / 2, canvasHeight / 2, scale, canvasWidth, canvasHeight);
+            / (double) Math.min(Simple3D.WIDTH, Simple3D.HEIGHT)
+            * morphController.getMorphScale();
+        renderer.render(morphController.getActiveBody(), g, canvasWidth / 2, canvasHeight / 2, scale, canvasWidth, canvasHeight);
       }
     };
 
