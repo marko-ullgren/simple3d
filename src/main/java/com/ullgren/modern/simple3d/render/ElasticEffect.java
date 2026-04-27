@@ -68,6 +68,11 @@ public class ElasticEffect implements Effect {
     return timer.isRunning();
   }
 
+  @Override
+  public void stop() {
+    timer.stop();
+  }
+
   /**
    * Applies the radial displacement from {@code src} into {@code dst}.
    * Pixels outside {@link #RADIUS} are copied unchanged. For pixels inside the radius the

@@ -36,4 +36,11 @@ public interface Effect {
    * @param h   image height in pixels
    */
   void applyToPixels(int[] src, int[] dst, int w, int h);
+
+  /**
+   * Stops the effect immediately, releasing any internal animation timer.
+   * Called before the active effect is replaced by another one.
+   * The default implementation is a no-op; stateful effects should override it.
+   */
+  default void stop() {}
 }
