@@ -32,7 +32,12 @@ A complete rewrite targeting Java 21, keeping the same geometry and interaction 
   - Side faces are fan-triangulated and sorted back-to-front (painter's algorithm)
   - The non-convex cap face is drawn last — geometrically guaranteed to be in front of any side face it overlaps
   - 2× supersampling anti-aliasing for smooth edges
-- **Elastic dent effect** — clicking the shape leaves a soft spring-damper dent that bounces back
+- **Image-space effects** triggered on mouse click — four selectable via the Effect menu:
+  - *Elastic Dent* (default) — spring-damper compression that bounces back
+  - *Ripple* — concentric sine-wave rings that radiate outward and fade
+  - *Vortex* — swirling rotation around the click point that unwinds
+  - *Shockwave* — a single expanding ring of radial displacement
+  - *No Effect* — disables the click effect
 - **Starfield background** — 200 stars of varying size and brightness give the illusion of the object floating in space
 - **Seven built-in shapes**: MU logo (default), Cube, Tetrahedron, Octahedron, Icosahedron, Torus, and Pyramid
 
@@ -51,7 +56,12 @@ A faithful TypeScript port of the modern Java app that runs entirely in the brow
 | `src/model/Point3D.ts` | 3D point with the same rotation math as the Java version |
 | `src/model/Body.ts` | Async `.body` file loader (`fetch`); same ambient-occlusion bake |
 | `src/render/StarField.ts` | Deterministic star layout via a BigInt port of Java's `Random(42)` |
-| `src/render/ElasticEffect.ts` | Spring-damper dent; `setInterval`-based; RGBA pixel displacement |
+| `src/render/effect/Effect.ts` | `Effect` interface (`trigger`, `isActive`, `applyToPixels`, `stop`) |
+| `src/render/effect/ElasticEffect.ts` | Spring-damper dent; `setInterval`-based; RGBA pixel displacement |
+| `src/render/effect/RippleEffect.ts` | Expanding sine-wave rings that fade over 1.5 s |
+| `src/render/effect/VortexEffect.ts` | Swirling rotation that unwinds over 1.2 s |
+| `src/render/effect/ShockwaveEffect.ts` | Single expanding ring of radial displacement |
+| `src/render/effect/NoEffect.ts` | Null-object — disables the click effect |
 | `src/render/Renderer.ts` | Gouraud scanline rasteriser into `ImageData`; cap polygons via Canvas 2D paths; 2× SSAA |
 | `src/control/AnimationController.ts` | Angular momentum + friction decay |
 | `src/main.ts` | Wires everything; `requestAnimationFrame` render loop; `<select>` menus |
@@ -71,7 +81,7 @@ npm run dev    # → http://localhost:5173
 
 ### Tests
 
-61 unit tests cover the model and control layers:
+85 unit tests cover the model, control, and effect layers:
 
 ```bash
 cd src/web
@@ -81,7 +91,7 @@ npm test        # run once
 npm run test:watch  # re-run on file changes
 ```
 
-Tests are co-located with source files (`*.test.ts`). The rendering pipeline (`Renderer.ts`, `StarField.ts`) is verified visually rather than by unit tests.
+Tests are co-located with source files (`*.test.ts`). Effect tests (`render/effect/*.test.ts`) verify pixel-level displacement logic directly against `Uint8ClampedArray` buffers — no browser or canvas required. The rendering pipeline (`Renderer.ts`, `StarField.ts`) is verified visually.
 
 ### Deployment
 
@@ -102,7 +112,7 @@ mvn compile
 
 ### How to run tests (`src/test/`)
 
-Tests cover `Point3D` (constructors, rotation invariants, round-trips) and `Body` (loading, error handling, draw branch coverage, rotation):
+Tests cover `Point3D`, `Body`, `Renderer`, and all five effect implementations. Effect tests verify pixel-level displacement directly against `int[]` buffers — no display required:
 
 ```
 mvn test
@@ -126,3 +136,4 @@ mvn exec:java@vintage
 - **Scroll wheel** to zoom in and out (zoom range: 0.1× – 10×)
 - **Body menu** — switch between seven shapes: MU logo (default), Cube, Tetrahedron, Octahedron, Icosahedron, Torus, and Pyramid
 - **Colour menu** — change the object colour
+- **Effect menu** — choose the click effect: Elastic Dent (default), Ripple, Vortex, Shockwave, or No Effect
