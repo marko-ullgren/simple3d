@@ -1,4 +1,4 @@
-package com.ullgren.modern.simple3d.render;
+package com.ullgren.modern.simple3d.render.effect;
 
 /**
  * Image-space post-processing effect applied to the already-rendered frame each tick.

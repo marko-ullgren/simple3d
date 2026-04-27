@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.ullgren.modern.simple3d.model.Body;
 import com.ullgren.modern.simple3d.model.BodyLoader;
+import com.ullgren.modern.simple3d.render.effect.Effect;
+import com.ullgren.modern.simple3d.render.effect.ElasticEffect;
 /**
  * Behavioural tests for {@link Renderer}.
  * <p>
