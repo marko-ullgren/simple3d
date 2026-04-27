@@ -20,7 +20,7 @@ public class ElasticEffectTest {
   @Test
   public void isActive_afterDent_isTrue() {
     ElasticEffect effect = new ElasticEffect(() -> {});
-    effect.dent(50, 50);
+    effect.trigger(50, 50);
     assertTrue(effect.isActive(), "Should be active immediately after dent");
   }
 
@@ -33,7 +33,7 @@ public class ElasticEffectTest {
     System.arraycopy(src, 0, dst, 0, src.length);
 
     ElasticEffect effect = new ElasticEffect(() -> {});
-    effect.dent(100, 100);
+    effect.trigger(100, 100);
     effect.applyToPixels(src, dst, w, h);
 
     // Corners are well outside RADIUS from the dent centre (100, 100)
@@ -55,7 +55,7 @@ public class ElasticEffectTest {
     System.arraycopy(src, 0, dst, 0, src.length);
 
     ElasticEffect effect = new ElasticEffect(() -> {});
-    effect.dent(150, 150);
+    effect.trigger(150, 150);
     effect.applyToPixels(src, dst, w, h);
 
     // (150+20, 150) is 20 px from the centre — well inside the influence radius
@@ -74,7 +74,7 @@ public class ElasticEffectTest {
     System.arraycopy(src, 0, dst, 0, src.length);
 
     ElasticEffect effect = new ElasticEffect(() -> {});
-    effect.dent(100, 100);
+    effect.trigger(100, 100);
     effect.applyToPixels(src, dst, w, h);
 
     // distance == 0 at the dent centre — the loop skips it, leaving dst unchanged

@@ -47,10 +47,10 @@ public class Renderer {
   /** 2× resolution buffer; geometry is rendered here then downsampled to {@link #canvasImage}. */
   private BufferedImage hiResImage;
   private int           hiResImageW, hiResImageH;
-  /** Scratch buffer for the elastic-dent pixel-displacement pass. */
-  private int[]         tempBuffer;
-  /** Optional image-space dent effect applied after all geometry is rendered. */
-  private ElasticEffect effect;
+  /** Scratch buffer for the effect pixel-displacement pass. */
+  private int[]  tempBuffer;
+  /** Optional image-space effect applied after all geometry is rendered. */
+  private Effect effect;
 
   /** A scan-line rendered triangle with per-corner Gouraud shading values. */
   private record Triangle(int x0, int y0, int x1, int y1, int x2, int y2,
@@ -63,8 +63,8 @@ public class Renderer {
     }
   }
 
-  /** Attaches an elastic dent effect that will be applied each frame after geometry rendering. */
-  public void setEffect(ElasticEffect effect) {
+  /** Attaches an effect that will be applied each frame after geometry rendering. */
+  public void setEffect(Effect effect) {
     this.effect = effect;
   }
 

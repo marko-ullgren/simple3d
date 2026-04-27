@@ -275,7 +275,7 @@ public class RendererTest {
     Body body = BodyLoader.load(RES + "test_triangle.body", Color.blue);
     Renderer renderer = new Renderer();
     ElasticEffect effect = new ElasticEffect(() -> {});
-    effect.dent(220, 220);
+    effect.trigger(220, 220);
     renderer.setEffect(effect);
     assertDoesNotThrow(() ->
         renderer.render(body, newGraphics(400, 400), 200, 200, 1.0, 400, 400));
@@ -290,7 +290,7 @@ public class RendererTest {
     Body body = BodyLoader.load(RES + "test_triangle.body", Color.blue);
     Renderer renderer = new Renderer();
     ElasticEffect effect = new ElasticEffect(() -> {});
-    effect.dent(200, 200);
+    effect.trigger(200, 200);
     renderer.setEffect(effect);
     renderer.render(body, newGraphics(400, 400), 200, 200, 1.0, 400, 400);
 
