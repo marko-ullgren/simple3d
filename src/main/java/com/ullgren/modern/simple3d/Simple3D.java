@@ -8,19 +8,25 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import javax.swing.ButtonGroup;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JRadioButtonMenuItem;
 
 import com.ullgren.modern.simple3d.control.AnimationController;
 import com.ullgren.modern.simple3d.model.Body;
 import com.ullgren.modern.simple3d.model.BodyLoader;
 import com.ullgren.modern.simple3d.render.Effect;
 import com.ullgren.modern.simple3d.render.ElasticEffect;
+import com.ullgren.modern.simple3d.render.NoEffect;
 import com.ullgren.modern.simple3d.render.Renderer;
+import com.ullgren.modern.simple3d.render.RippleEffect;
+import com.ullgren.modern.simple3d.render.ShockwaveEffect;
 import com.ullgren.modern.simple3d.render.StarField;
+import com.ullgren.modern.simple3d.render.VortexEffect;
 
 /**
  * Simple3D renders a three-dimensional solid body that rotates on screen. Clicking different
@@ -78,6 +84,13 @@ public class Simple3D {
     body = BodyLoader.load(resource, body.getColour());
     animationController.setBody(body);
     canvas.repaint();
+  }
+
+  /** Stops the current effect and replaces it with {@code next}. */
+  private void switchEffect(Effect next) {
+    effect.stop();
+    effect = next;
+    renderer.setEffect(effect);
   }
 
   private Body buildBody() {
@@ -143,6 +156,32 @@ public class Simple3D {
     blueItem.addActionListener(e  -> { body.setColour(Color.blue);  canvas.repaint(); });
     redItem.addActionListener(e   -> { body.setColour(Color.red);   canvas.repaint(); });
     greenItem.addActionListener(e -> { body.setColour(Color.green); canvas.repaint(); });
+
+    JMenu effectMenu = new JMenu("Effect");
+    JRadioButtonMenuItem elasticItem   = new JRadioButtonMenuItem("Elastic Dent", true);
+    JRadioButtonMenuItem rippleItem    = new JRadioButtonMenuItem("Ripple");
+    JRadioButtonMenuItem vortexItem    = new JRadioButtonMenuItem("Vortex");
+    JRadioButtonMenuItem shockwaveItem = new JRadioButtonMenuItem("Shockwave");
+    JRadioButtonMenuItem noEffectItem  = new JRadioButtonMenuItem("No Effect");
+    ButtonGroup effectGroup = new ButtonGroup();
+    effectGroup.add(elasticItem);
+    effectGroup.add(rippleItem);
+    effectGroup.add(vortexItem);
+    effectGroup.add(shockwaveItem);
+    effectGroup.add(noEffectItem);
+    effectMenu.add(elasticItem);
+    effectMenu.add(rippleItem);
+    effectMenu.add(vortexItem);
+    effectMenu.add(shockwaveItem);
+    effectMenu.addSeparator();
+    effectMenu.add(noEffectItem);
+    menuBar.add(effectMenu);
+
+    elasticItem.addActionListener(e   -> switchEffect(new ElasticEffect(canvas::repaint)));
+    rippleItem.addActionListener(e    -> switchEffect(new RippleEffect(canvas::repaint)));
+    vortexItem.addActionListener(e    -> switchEffect(new VortexEffect(canvas::repaint)));
+    shockwaveItem.addActionListener(e -> switchEffect(new ShockwaveEffect(canvas::repaint)));
+    noEffectItem.addActionListener(e  -> switchEffect(new NoEffect()));
 
     return menuBar;
   }
