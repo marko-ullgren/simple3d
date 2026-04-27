@@ -1,7 +1,12 @@
 import { Body, COLOURS, type Colour } from './model/Body.js';
 import { StarField } from './render/StarField.js';
 import { Renderer } from './render/Renderer.js';
-import { ElasticEffect } from './render/ElasticEffect.js';
+import { ElasticEffect } from './render/effect/ElasticEffect.js';
+import type { Effect } from './render/effect/Effect.js';
+import { NoEffect } from './render/effect/NoEffect.js';
+import { RippleEffect } from './render/effect/RippleEffect.js';
+import { VortexEffect } from './render/effect/VortexEffect.js';
+import { ShockwaveEffect } from './render/effect/ShockwaveEffect.js';
 import { AnimationController } from './control/AnimationController.js';
 
 // Sensitivity: minimum pixel distance from centre for a click to affect rotation.
@@ -12,6 +17,7 @@ const REF_SIZE = 350;
 const canvas      = document.getElementById('canvas') as HTMLCanvasElement;
 const bodySelect  = document.getElementById('body-select') as HTMLSelectElement;
 const colourSelect = document.getElementById('colour-select') as HTMLSelectElement;
+const effectSelect = document.getElementById('effect-select') as HTMLSelectElement;
 const ctx         = canvas.getContext('2d')!;
 
 const starField = new StarField();
@@ -19,7 +25,7 @@ const renderer  = new Renderer();
 
 let body:   Body;
 let animCtrl: AnimationController;
-let effect: ElasticEffect;
+let effect: Effect;
 let zoom = 1.0;
 let rafPending = false;
 
@@ -90,7 +96,7 @@ canvas.addEventListener('mousedown', (e) => {
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
   animCtrl?.applyImpulse(x, y, canvas.width / 2, canvas.height / 2, SENSITIVITY);
-  effect?.dent(x, y);
+  effect?.trigger(x, y);
 });
 
 canvas.addEventListener('wheel', (e) => {
@@ -99,6 +105,24 @@ canvas.addEventListener('wheel', (e) => {
   zoom = Math.max(0.1, Math.min(zoom, 10));
   repaint();
 }, { passive: false });
+
+// --- Effect switching ---
+
+function switchEffect(next: Effect): void {
+  effect.stop();
+  effect = next;
+  renderer.setEffect(effect);
+}
+
+effectSelect.addEventListener('change', () => {
+  switch (effectSelect.value) {
+    case 'elastic':   switchEffect(new ElasticEffect(repaint));   break;
+    case 'ripple':    switchEffect(new RippleEffect(repaint));    break;
+    case 'vortex':    switchEffect(new VortexEffect(repaint));    break;
+    case 'shockwave': switchEffect(new ShockwaveEffect(repaint)); break;
+    case 'none':      switchEffect(new NoEffect());               break;
+  }
+});
 
 // --- Menu events ---
 

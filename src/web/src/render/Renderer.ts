@@ -1,6 +1,6 @@
 import { Body } from '../model/Body.js';
 import { Point3D } from '../model/Point3D.js';
-import type { ElasticEffect } from './ElasticEffect.js';
+import type { Effect } from './effect/Effect.js';
 
 /**
  * Renders a {@link Body} onto a Canvas 2D context using Gouraud shading for side faces
@@ -32,9 +32,9 @@ export class Renderer {
   private geoW = 0;
   private geoH = 0;
 
-  private effect: ElasticEffect | null = null;
+  private effect: Effect | null = null;
 
-  setEffect(e: ElasticEffect): void { this.effect = e; }
+  setEffect(e: Effect): void { this.effect = e; }
 
   /**
    * Renders {@code body} and composites the result onto {@code ctx}.
