@@ -66,3 +66,9 @@ New shapes are added as two private static methods in `Simple3D`:
 - `<name>Viivat()` returning `int[][2]` (pairs of indices into the points array)
 
 Then wire them up in the `action()` menu handler.
+
+### Branching workflow
+Always pull the latest master and create a new branch from it before starting any feature or fix:
+```bash
+git checkout master && git pull && git checkout -b feature/<name>
+```
