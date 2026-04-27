@@ -47,9 +47,9 @@ public class Renderer {
    * Shininess exponent — higher = smaller, sharper highlight.
    * Typical values: 16 (soft/metallic), 40 (plastic), 120 (polished).
    */
-  private static final double SHININESS         = 40.0;
+  private static final double SHININESS         = 32.0;
   /** Specular intensity multiplier [0..1+]. 0 = off, 1 = full white at peak. */
-  private static final double SPECULAR_STRENGTH = 0.55;
+  private static final double SPECULAR_STRENGTH = 0.8;
   /**
    * Blinn-Phong half-vector H = normalise(L + V), precomputed once.
    * L = normalise(1, 1, −2) (upper-right off-axis light).
@@ -72,13 +72,13 @@ public class Renderer {
    * Rim (back-edge) light intensity at a pure silhouette face ({@code N·V = 0}).
    * Set to 0 to disable rim lighting entirely.
    */
-  private static final double RIM_STRENGTH = 0.45;
+  private static final double RIM_STRENGTH = 0.7;
   /**
    * Controls how quickly the rim falls off from the silhouette inward.
    * Higher values → tighter, more focused rim band; lower → wider glow.
    * Typical: 2 (wide) … 5 (narrow).
    */
-  private static final double RIM_POWER    = 2.5;
+  private static final double RIM_POWER    = 2.0;
 
   // ---------------------------------------------------------------------------
 
