@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.ullgren.modern.simple3d.model.Body;
 import com.ullgren.modern.simple3d.model.BodyLoader;
-
 /**
  * Behavioural tests for {@link Renderer}.
  * <p>
@@ -24,6 +23,108 @@ import com.ullgren.modern.simple3d.model.BodyLoader;
 public class RendererTest {
 
   private static final String RES = "/com/ullgren/modern/simple3d/";
+
+  // ---------------------------------------------------------------------------
+  // Smoke tests — rendering known bodies must not throw
+  // ---------------------------------------------------------------------------
+
+  @Test
+  public void render_withTriangleFace_doesNotThrow() {
+    Body body = BodyLoader.load(RES + "test_triangle.body", Color.blue);
+    assertDoesNotThrow(() -> render(body, 200, 200, 1.0, 400, 400));
+  }
+
+  @Test
+  public void render_withQuadFace_doesNotThrow() {
+    Body body = BodyLoader.load(RES + "test_quad.body", Color.blue);
+    assertDoesNotThrow(() -> render(body, 200, 200, 1.0, 400, 400));
+  }
+
+  @Test
+  public void render_withCapPolygon_doesNotThrow() {
+    Body body = BodyLoader.load(RES + "test_cap.body", Color.blue);
+    assertDoesNotThrow(() -> render(body, 200, 200, 1.0, 400, 400));
+  }
+
+  @Test
+  public void render_muBody_doesNotThrow() {
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) body.rotateZY();
+    assertDoesNotThrow(() -> render(body, 200, 200, 1.0, 400, 400));
+  }
+
+  @Test
+  public void render_cubeBody_doesNotThrow() {
+    Body body = BodyLoader.load(RES + "cube.body", Color.blue);
+    assertDoesNotThrow(() -> render(body, 200, 200, 1.0, 400, 400));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Back-face culling
+  // ---------------------------------------------------------------------------
+
+  @Test
+  public void render_backFacedBody_producesNoPixels() {
+    Body body = BodyLoader.load(RES + "test_backfacing.body", Color.white);
+    BufferedImage img = render(body, 200, 200, 1.0, 400, 400);
+    for (int y = 0; y < 400; y++)
+      for (int x = 0; x < 400; x++)
+        assertEquals(0, img.getRGB(x, y), "Expected no pixels drawn for back-facing body");
+  }
+
+  @Test
+  public void render_frontFacedBody_producesNonBlackPixels() {
+    Body body = BodyLoader.load(RES + "test_triangle.body", Color.white);
+    assertTrue(countNonZeroPixels(render(body, 200, 200, 1.0, 400, 400)) > 0,
+        "Expected some pixels to be drawn");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Renderer state and reuse
+  // ---------------------------------------------------------------------------
+
+  @Test
+  public void renderer_consecutiveRenders_produceSameOutput() {
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) body.rotateZY();
+    Renderer renderer = new Renderer();
+    long first  = pixelSum(renderWith(renderer, body, 200, 200, 1.0, 400, 400));
+    long second = pixelSum(renderWith(renderer, body, 200, 200, 1.0, 400, 400));
+    assertEquals(first, second,
+        "Same renderer, same body, same canvas size should produce identical output");
+  }
+
+  @Test
+  public void renderer_afterColourChange_reflectsNewColour() {
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) body.rotateZY();
+    Renderer renderer = new Renderer();
+    long blue = pixelSum(renderWith(renderer, body, 200, 200, 1.0, 400, 400));
+    body.setColour(Color.red);
+    long red = pixelSum(renderWith(renderer, body, 200, 200, 1.0, 400, 400));
+    assertNotEquals(blue, red, "Render output should change after colour change");
+  }
+
+  @Test
+  public void renderer_afterBodySwap_reflectsNewBody() {
+    Renderer renderer = new Renderer();
+    Body mu = BodyLoader.load(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) mu.rotateZY();
+    Body cube = BodyLoader.load(RES + "cube.body", Color.blue);
+    long muPixels   = pixelSum(renderWith(renderer, mu,   200, 200, 1.0, 400, 400));
+    long cubePixels = pixelSum(renderWith(renderer, cube, 200, 200, 1.0, 400, 400));
+    assertNotEquals(muPixels, cubePixels, "MU and cube should produce different renders");
+  }
+
+  @Test
+  public void renderer_afterSizeChange_doesNotThrow() {
+    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
+    for (int i = 0; i < 60; i++) body.rotateZY();
+    Renderer renderer = new Renderer();
+    renderer.render(body, newGraphics(400, 400), 200, 200, 1.0, 400, 400);
+    assertDoesNotThrow(() ->
+        renderer.render(body, newGraphics(600, 500), 300, 250, 1.0, 600, 500));
+  }
 
   // ---------------------------------------------------------------------------
   // Projection
@@ -215,6 +316,15 @@ public class RendererTest {
 
   private static Graphics newGraphics(int w, int h) {
     return new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB).createGraphics();
+  }
+
+  /** Sum of all ARGB pixel values, used to detect colour or content changes. */
+  private static long pixelSum(BufferedImage img) {
+    long sum = 0;
+    for (int y = 0; y < img.getHeight(); y++)
+      for (int x = 0; x < img.getWidth(); x++)
+        sum += img.getRGB(x, y) & 0xFFFFFFFFL;
+    return sum;
   }
 
   /** Number of pixels whose ARGB value is not 0 (i.e., something was drawn). */
