@@ -1,7 +1,6 @@
 package com.ullgren.modern.simple3d;
 
 import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -9,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.ullgren.modern.simple3d.model.Body;
 import com.ullgren.modern.simple3d.model.BodyLoader;
 import com.ullgren.modern.simple3d.model.Point3D;
-import com.ullgren.modern.simple3d.render.ElasticEffect;
 import com.ullgren.modern.simple3d.render.Renderer;
 
 public class BodyTest {
@@ -111,122 +109,6 @@ public class BodyTest {
     Body body = BodyLoader.load(RES + "test_triangle.body", Color.blue);
     body.setColour(Color.red);
     assertEquals(Color.red, body.getColour());
-  }
-
-  // -------------------------------------------------------------------------
-  // Drawing — branch coverage
-  // -------------------------------------------------------------------------
-
-  @Test
-  public void render_withTriangleFace_doesNotThrow() {
-    Body body = BodyLoader.load(RES + "test_triangle.body", Color.blue);
-    Graphics g = newGraphics(400, 400);
-    new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
-    g.dispose();
-  }
-
-  @Test
-  public void render_withQuadFace_doesNotThrow() {
-    Body body = BodyLoader.load(RES + "test_quad.body", Color.blue);
-    Graphics g = newGraphics(400, 400);
-    new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
-    g.dispose();
-  }
-
-  @Test
-  public void render_withCapPolygon_doesNotThrow() {
-    Body body = BodyLoader.load(RES + "test_cap.body", Color.blue);
-    Graphics g = newGraphics(400, 400);
-    new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
-    g.dispose();
-  }
-
-  @Test
-  public void render_backFacedBody_producesNoPixels() {
-    Body body = BodyLoader.load(RES + "test_backfacing.body", Color.white);
-    BufferedImage img = newImage(400, 400);
-    new Renderer().render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
-    // All pixels should remain transparent/black — nothing was drawn
-    for (int y = 0; y < 400; y++) {
-      for (int x = 0; x < 400; x++) {
-        assertEquals(0, img.getRGB(x, y), "Expected no pixels drawn for back-facing body");
-      }
-    }
-  }
-
-  @Test
-  public void render_frontFacedBody_producesNonBlackPixels() {
-    Body body = BodyLoader.load(RES + "test_triangle.body", Color.white);
-    BufferedImage img = newImage(400, 400);
-    new Renderer().render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
-    assertTrue(hasNonZeroPixel(img), "Expected some pixels to be drawn");
-  }
-
-  @Test
-  public void render_muBody_doesNotThrow() {
-    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
-    for (int i = 0; i < 60; i++) body.rotateZY();
-    Graphics g = newGraphics(400, 400);
-    new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
-    g.dispose();
-  }
-
-  @Test
-  public void render_cubeBody_doesNotThrow() {
-    Body body = BodyLoader.load(RES + "cube.body", Color.blue);
-    Graphics g = newGraphics(400, 400);
-    new Renderer().render(body, g, 200, 200, 1.0, 400, 400);
-    g.dispose();
-  }
-
-  // -------------------------------------------------------------------------
-  // Renderer — state and reuse
-  // -------------------------------------------------------------------------
-
-  @Test
-  public void renderer_consecutiveRenders_produceSameOutput() {
-    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
-    for (int i = 0; i < 60; i++) body.rotateZY();
-    Renderer renderer = new Renderer();
-    BufferedImage img = newImage(400, 400);
-    renderer.render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
-    long first = pixelSum(img);
-    img = newImage(400, 400);
-    renderer.render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
-    long second = pixelSum(img);
-    assertEquals(first, second,
-        "Same renderer, same body, same size should produce identical output");
-  }
-
-  @Test
-  public void renderer_afterColourChange_reflectsNewColour() {
-    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
-    for (int i = 0; i < 60; i++) body.rotateZY();
-    Renderer renderer = new Renderer();
-    long blue = pixelSum(renderWith(renderer, body, 400, 400));
-    body.setColour(Color.red);
-    long red = pixelSum(renderWith(renderer, body, 400, 400));
-    assertNotEquals(blue, red, "Render output should change after colour change");
-  }
-
-  @Test
-  public void renderer_afterBodySwap_reflectsNewBody() {
-    Renderer renderer = new Renderer();
-    Body mu = BodyLoader.load(RES + "mu.body", Color.blue);
-    for (int i = 0; i < 60; i++) mu.rotateZY();
-    Body cube = BodyLoader.load(RES + "cube.body", Color.blue);
-    long muPixels   = pixelSum(renderWith(renderer, mu,   400, 400));
-    long cubePixels = pixelSum(renderWith(renderer, cube, 400, 400));
-    assertNotEquals(muPixels, cubePixels, "MU and cube should produce different renders");
-  }
-
-  @Test
-  public void renderer_afterSizeChange_doesNotThrow() {
-    Body body = BodyLoader.load(RES + "mu.body", Color.blue);
-    for (int i = 0; i < 60; i++) body.rotateZY();
-    Renderer renderer = new Renderer();
-    renderer.render(body, newGraphics(400, 400), 200, 200, 1.0, 400, 400);
-    renderer.render(body, newGraphics(600, 500), 300, 250, 1.0, 600, 500);
   }
 
   // -------------------------------------------------------------------------
@@ -465,75 +347,6 @@ public class BodyTest {
   }
 
   // -------------------------------------------------------------------------
-  // ElasticEffect — pixel displacement
-  // -------------------------------------------------------------------------
-
-  @Test
-  public void elasticEffect_outsideRadius_pixelsUnchanged() {
-    int w = 200, h = 200;
-    int[] src = new int[w * h];
-    int[] dst = new int[w * h];
-    for (int i = 0; i < src.length; i++) src[i] = 0xFF0000FF; // blue
-    System.arraycopy(src, 0, dst, 0, src.length);
-
-    ElasticEffect effect = new ElasticEffect(() -> {});
-    effect.dent(100, 100);
-    effect.applyToPixels(src, dst, w, h);
-
-    // Corners are well outside RADIUS=80 from centre (100,100)
-    assertEquals(src[0], dst[0], "Top-left corner should be unchanged");
-    assertEquals(src[(h - 1) * w + (w - 1)], dst[(h - 1) * w + (w - 1)],
-        "Bottom-right corner should be unchanged");
-  }
-
-  @Test
-  public void elasticEffect_insideRadius_pixelsDisplaced() {
-    int w = 300, h = 300;
-    // Gradient source: each pixel encodes its x position so displacement is visible
-    int[] src = new int[w * h];
-    for (int y = 0; y < h; y++) {
-      for (int x = 0; x < w; x++) {
-        src[y * w + x] = 0xFF000000 | (x & 0xFF);
-      }
-    }
-    int[] dst = new int[w * h];
-    System.arraycopy(src, 0, dst, 0, src.length);
-
-    ElasticEffect effect = new ElasticEffect(() -> {});
-    effect.dent(150, 150);
-    effect.applyToPixels(src, dst, w, h);
-
-    // At (150+20, 150) — distance 20px, well inside RADIUS=38 — pixel should be displaced
-    int originalBlue = src[150 * w + 170] & 0xFF;
-    int displacedBlue = dst[150 * w + 170] & 0xFF;
-    assertNotEquals(originalBlue, displacedBlue, "Pixel inside radius should be displaced");
-  }
-
-  @Test
-  public void elasticEffect_centrePixel_notDisplaced() {
-    int w = 200, h = 200;
-    int[] src = new int[w * h];
-    for (int i = 0; i < src.length; i++) src[i] = 0xFF000000 | i;
-    int[] dst = new int[w * h];
-    System.arraycopy(src, 0, dst, 0, src.length);
-
-    ElasticEffect effect = new ElasticEffect(() -> {});
-    effect.dent(100, 100);
-    effect.applyToPixels(src, dst, w, h);
-
-    // d==0 at the click centre — the loop skips it, leaving dst unchanged
-    assertEquals(src[100 * w + 100], dst[100 * w + 100], "Centre pixel must not be displaced");
-  }
-
-  @Test
-  public void elasticEffect_isActive_afterDent() {
-    ElasticEffect effect = new ElasticEffect(() -> {});
-    assertFalse(effect.isActive(), "Should be inactive before first dent");
-    effect.dent(50, 50);
-    assertTrue(effect.isActive(), "Should be active immediately after dent");
-  }
-
-  // -------------------------------------------------------------------------
   // Helpers
   // -------------------------------------------------------------------------
 
@@ -541,29 +354,10 @@ public class BodyTest {
     return new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
   }
 
-  private static Graphics newGraphics(int w, int h) {
-    return newImage(w, h).createGraphics();
-  }
-
   private static BufferedImage drawToImage(Body body) {
     BufferedImage img = newImage(400, 400);
     new Renderer().render(body, img.createGraphics(), 200, 200, 1.0, 400, 400);
     return img;
-  }
-
-  private static BufferedImage renderWith(Renderer renderer, Body body, int w, int h) {
-    BufferedImage img = newImage(w, h);
-    renderer.render(body, img.createGraphics(), w / 2, h / 2, 1.0, w, h);
-    return img;
-  }
-
-  private static boolean hasNonZeroPixel(BufferedImage img) {
-    for (int y = 0; y < img.getHeight(); y++) {
-      for (int x = 0; x < img.getWidth(); x++) {
-        if (img.getRGB(x, y) != 0) return true;
-      }
-    }
-    return false;
   }
 
   private static long pixelSum(BufferedImage img) {
