@@ -1,14 +1,16 @@
+import type { Effect } from './Effect.js';
+
 /**
  * Image-space elastic dent effect.
  *
- * Calling {@link dent} triggers a spring-damper animation that radially
+ * Calling {@link trigger} triggers a spring-damper animation that radially
  * displaces pixels around the click point.  The effect owns its own 60 fps
  * interval timer and stops automatically once the spring has settled.
  *
  * Call {@link applyToPixels} each frame while {@link isActive} returns true to
  * blend the effect into the rendered geometry layer.
  */
-export class ElasticEffect {
+export class ElasticEffect implements Effect {
   private static readonly STIFFNESS   = 350;
   private static readonly DAMPING     = 22;
   /** Initial inward displacement in pixels. */
@@ -27,7 +29,7 @@ export class ElasticEffect {
   constructor(private readonly repaint: () => void) {}
 
   /** Triggers a dent centred on {@code (x, y)}.  Restarts if already running. */
-  dent(x: number, y: number): void {
+  trigger(x: number, y: number): void {
     this.cx           = x;
     this.cy           = y;
     this.displacement = ElasticEffect.INIT_DISP;
@@ -38,6 +40,10 @@ export class ElasticEffect {
 
   isActive(): boolean {
     return this.timerId !== null;
+  }
+
+  stop(): void {
+    this.clearTimer();
   }
 
   /**
@@ -72,7 +78,6 @@ export class ElasticEffect {
         const dstBase    = (oy * w + ox) * 4;
 
         if (sourceDist <= 0) {
-          // Clamped to original pixel.
           const srcBase = dstBase;
           dst[dstBase]     = src[srcBase];
           dst[dstBase + 1] = src[srcBase + 1];

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ElasticEffect } from '../../src/render/ElasticEffect.js';
+import { ElasticEffect } from './ElasticEffect.js';
 
 const R = ElasticEffect.RADIUS;
 
@@ -15,19 +15,15 @@ function copyPixels(src: Uint8ClampedArray): Uint8ClampedArray {
 
 describe('ElasticEffect', () => {
 
-  it('isActive is false before first dent', () => {
+  it('isActive is false before first trigger', () => {
     const e = new ElasticEffect(() => {});
     expect(e.isActive()).toBe(false);
   });
 
-  it('isActive is true immediately after dent', () => {
+  it('isActive is true immediately after trigger', () => {
     const e = new ElasticEffect(() => {});
-    e.dent(50, 50);
+    e.trigger(50, 50);
     expect(e.isActive()).toBe(true);
-    // Clean up the interval so the test process can exit.
-    // Access via casting since clearTimer is private; use dent()+isActive trick:
-    // Restart with zero-displacement-equivalent by accessing internals not needed —
-    // just leave it; Vitest runs with fake timers automatically cleaned up.
   });
 
   it('pixels outside radius are unchanged', () => {
@@ -36,7 +32,7 @@ describe('ElasticEffect', () => {
     const dst = copyPixels(src);
 
     const e = new ElasticEffect(() => {});
-    e.dent(100, 100);
+    e.trigger(100, 100);
     e.applyToPixels(src, dst, w, h);
 
     // Corners are well outside RADIUS from (100,100).
@@ -58,7 +54,7 @@ describe('ElasticEffect', () => {
     const dst = copyPixels(src);
 
     const e = new ElasticEffect(() => {});
-    e.dent(150, 150);
+    e.trigger(150, 150);
     e.applyToPixels(src, dst, w, h);
 
     // At (170, 150) — 20px from centre, well inside RADIUS — should be displaced.
@@ -74,7 +70,7 @@ describe('ElasticEffect', () => {
     const dst = copyPixels(src);
 
     const e = new ElasticEffect(() => {});
-    e.dent(100, 100);
+    e.trigger(100, 100);
     e.applyToPixels(src, dst, w, h);
 
     const centreBase = (100 * w + 100) * 4;
@@ -90,7 +86,7 @@ describe('ElasticEffect', () => {
     const dst = copyPixels(src);
 
     const e = new ElasticEffect(() => {});
-    e.dent(cx, cy);
+    e.trigger(cx, cy);
     e.applyToPixels(src, dst, w, h);
 
     // Point at exactly (cx + R, cy) — d == R, excluded by d >= R check.
@@ -98,13 +94,13 @@ describe('ElasticEffect', () => {
     expect(dst[boundaryBase]).toBe(src[boundaryBase]);
   });
 
-  it('restarting dent while active resets displacement', () => {
+  it('restarting trigger while active resets displacement', () => {
     const repaintCalls: number[] = [];
     const e = new ElasticEffect(() => repaintCalls.push(1));
-    e.dent(50, 50);
+    e.trigger(50, 50);
     expect(e.isActive()).toBe(true);
-    // Second dent should not throw and should remain active.
-    e.dent(60, 60);
+    // Second trigger should not throw and should remain active.
+    e.trigger(60, 60);
     expect(e.isActive()).toBe(true);
   });
 });
