@@ -91,6 +91,14 @@ describe('AnimationController', () => {
     expect(body2Changed).toBe(true);
   });
 
+  it('kickstart sets initial momentum and starts animation', () => {
+    const repaint = vi.fn();
+    const ctrl = new AnimationController(makeBody(), repaint);
+    ctrl.kickstart(0.5, 0.3);
+    vi.advanceTimersByTime(40); // one tick
+    expect(repaint.mock.calls.length).toBeGreaterThanOrEqual(1);
+  });
+
   it('opposite impulses cancel and animation stops', () => {
     const repaint = vi.fn();
     const ctrl = new AnimationController(makeBody(), repaint);

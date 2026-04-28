@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ElasticEffect } from './ElasticEffect.js';
 
 const R = ElasticEffect.RADIUS;
@@ -102,5 +102,48 @@ describe('ElasticEffect', () => {
     // Second trigger should not throw and should remain active.
     e.trigger(60, 60);
     expect(e.isActive()).toBe(true);
+  });
+
+  it('stop() makes isActive return false', () => {
+    const e = new ElasticEffect(() => {});
+    e.trigger(50, 50);
+    expect(e.isActive()).toBe(true);
+    e.stop();
+    expect(e.isActive()).toBe(false);
+  });
+
+  it('stop() before trigger is safe', () => {
+    const e = new ElasticEffect(() => {});
+    expect(() => e.stop()).not.toThrow();
+    expect(e.isActive()).toBe(false);
+  });
+
+  it('tick() calls repaint and eventually stops', () => {
+    vi.useFakeTimers();
+    const repaint = vi.fn();
+    const e = new ElasticEffect(repaint);
+    e.trigger(50, 50);
+    vi.advanceTimersByTime(2000); // let spring settle
+    expect(repaint.mock.calls.length).toBeGreaterThan(0);
+    expect(e.isActive()).toBe(false); // stopped after settling
+    vi.useRealTimers();
+  });
+
+  it('applyToPixels: large negative displacement triggers sourceDist<=0 branch', () => {
+    const W = 20, H = 20;
+    const src = new Uint8ClampedArray(W * H * 4);
+    const dst = new Uint8ClampedArray(W * H * 4);
+    for (let i = 0; i < src.length; i += 4) {
+      src[i] = 200; src[i+1] = 100; src[i+2] = 50; src[i+3] = 255;
+    }
+    const e = new ElasticEffect(() => {});
+    e.trigger(10, 10); // centre at (10,10)
+    (e as any).displacement = -100; // large negative → sourceDist <= 0 near centre
+    expect(() => e.applyToPixels(src, dst, W, H)).not.toThrow();
+    // Pixels near centre should have been copied from src (identity mapping at sourceDist<=0).
+    // pixel at (10, 9): ddx=0, ddy=-1, d=1
+    // t=1/60, mag = -100 * 4 * (1/60) * (59/60)^2 ≈ -6.46 → sourceDist = 1 + (-6.46) ≤ 0 → identity
+    const adjPixel = (9 * W + 10) * 4;
+    expect(dst[adjPixel]).toBe(src[adjPixel]);
   });
 });
