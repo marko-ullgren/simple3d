@@ -225,3 +225,69 @@ describe('Body — ambient occlusion', () => {
     }
   });
 });
+
+describe('Body — orientation section', () => {
+
+  const ORIENTED = `
+points
+  0   0 0
+  0 100 0
+100   0 0
+faces
+0 1 2
+orientation
+ZY 1
+`;
+
+  it('ZY 1 rotates point (0,100,0) by one step', () => {
+    const b = Body.fromText(ORIENTED, COLOURS.blue);
+    // rotateZY: new_y = 100*COS, new_z = -100*SIN
+    expect(b.pointAt(1).y).toBeCloseTo( 100 * Point3D.COS, 9);
+    expect(b.pointAt(1).z).toBeCloseTo(-100 * Point3D.SIN, 9);
+    expect(b.pointAt(1).x).toBeCloseTo(0, 9);
+  });
+
+  it('body without orientation section loads unmodified', () => {
+    const b = Body.fromText(TRIANGLE, COLOURS.blue);
+    expect(b.pointAt(1).z).toBeCloseTo(0, 9);
+  });
+
+  it('unknown axis throws', () => {
+    expect(() => Body.fromText(`
+points
+0 0 0
+0 1 0
+1 0 0
+faces
+0 1 2
+orientation
+XQ 5
+`, COLOURS.blue)).toThrow(/unknown axis/i);
+  });
+
+  it('zero steps throws', () => {
+    expect(() => Body.fromText(`
+points
+0 0 0
+0 1 0
+1 0 0
+faces
+0 1 2
+orientation
+ZY 0
+`, COLOURS.blue)).toThrow(/positive/i);
+  });
+
+  it('missing steps token throws', () => {
+    expect(() => Body.fromText(`
+points
+0 0 0
+0 1 0
+1 0 0
+faces
+0 1 2
+orientation
+ZY
+`, COLOURS.blue)).toThrow(/AXIS.*STEPS|STEPS.*AXIS/i);
+  });
+});
