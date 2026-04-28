@@ -8,6 +8,11 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import javax.swing.ButtonGroup;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -39,6 +44,8 @@ import com.ullgren.modern.simple3d.render.effect.VortexEffect;
  * (c) Marko Ullgren 1997-2026
  */
 public class Simple3D {
+
+  private static final String RES = "/com/ullgren/modern/simple3d/";
 
   static final int WIDTH  = 350;
   static final int HEIGHT = 375;
@@ -94,7 +101,8 @@ public class Simple3D {
   }
 
   private Body buildBody() {
-    return BodyLoader.load("/com/ullgren/modern/simple3d/mu.body", Color.blue);
+    String first = loadBodyNames().get(0);
+    return BodyLoader.load(RES + first + ".body", Color.blue);
   }
 
   private JMenuBar buildMenuBar() {
@@ -109,14 +117,13 @@ public class Simple3D {
     JMenu menu = new JMenu("Body");
     ButtonGroup group = new ButtonGroup();
 
-    menu.add(radioItem("MU", true, group, () -> loadShape("/com/ullgren/modern/simple3d/mu.body")));
-    menu.addSeparator();
-    menu.add(radioItem("Cube",        false, group, () -> loadShape("/com/ullgren/modern/simple3d/cube.body")));
-    menu.add(radioItem("Tetrahedron", false, group, () -> loadShape("/com/ullgren/modern/simple3d/tetrahedron.body")));
-    menu.add(radioItem("Octahedron",  false, group, () -> loadShape("/com/ullgren/modern/simple3d/octahedron.body")));
-    menu.add(radioItem("Icosahedron", false, group, () -> loadShape("/com/ullgren/modern/simple3d/icosahedron.body")));
-    menu.add(radioItem("Torus",       false, group, () -> loadShape("/com/ullgren/modern/simple3d/torus.body")));
-    menu.add(radioItem("Pyramid",     false, group, () -> loadShape("/com/ullgren/modern/simple3d/pyramid.body")));
+    List<String> names = loadBodyNames();
+    for (int i = 0; i < names.size(); i++) {
+      String name = names.get(i);
+      String label = Character.toUpperCase(name.charAt(0)) + name.substring(1);
+      String path = RES + name + ".body";
+      menu.add(radioItem(label, i == 0, group, () -> loadShape(path)));
+    }
     menu.addSeparator();
 
     JMenuItem quitItem = new JMenuItem("Quit");
@@ -124,6 +131,18 @@ public class Simple3D {
     menu.add(quitItem);
 
     return menu;
+  }
+
+  private List<String> loadBodyNames() {
+    try (var stream = Simple3D.class.getResourceAsStream(RES + "bodies.list");
+         var reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+      return reader.lines()
+          .map(String::strip)
+          .filter(l -> !l.isEmpty() && !l.startsWith("#"))
+          .toList();
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to load bodies.list", e);
+    }
   }
 
   private JMenu buildColourMenu() {
