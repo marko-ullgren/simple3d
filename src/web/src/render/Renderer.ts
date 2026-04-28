@@ -202,7 +202,7 @@ export class Renderer {
       this.geoW         = w;
       this.geoH         = h;
     }
-    return this.geoCanvas.getContext('2d')!;
+    return this.geoCanvas.getContext('2d', { willReadFrequently: true })!;
   }
 
   private getHiImageData(w: number, h: number, ctx: CanvasRenderingContext2D): ImageData {
