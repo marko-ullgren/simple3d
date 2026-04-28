@@ -18,7 +18,7 @@ const canvas      = document.getElementById('canvas') as HTMLCanvasElement;
 const bodySelect  = document.getElementById('body-select') as HTMLSelectElement;
 const colourSelect = document.getElementById('colour-select') as HTMLSelectElement;
 const effectSelect = document.getElementById('effect-select') as HTMLSelectElement;
-const ctx         = canvas.getContext('2d', { willReadFrequently: true })!;
+const ctx         = canvas.getContext('2d')!;
 
 const starField = new StarField();
 const renderer  = new Renderer();
