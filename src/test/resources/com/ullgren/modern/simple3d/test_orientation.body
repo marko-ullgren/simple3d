@@ -1,0 +1,12 @@
+# Triangle with a single ZY orientation step
+# Point 1 is (0, 100, 0) — after rotateZY:
+#   new_y =  100 * COS  ≈  99.863
+#   new_z = -100 * SIN  ≈  -5.234
+points
+  0   0 0
+  0 100 0
+100   0 0
+faces
+0 1 2
+orientation
+ZY 1

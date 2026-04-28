@@ -94,9 +94,7 @@ public class Simple3D {
   }
 
   private Body buildBody() {
-    Body b = BodyLoader.load("/com/ullgren/modern/simple3d/mu.body", Color.blue);
-    for (int i = 0; i < 60; i++) b.rotateZY();
-    return b;
+    return BodyLoader.load("/com/ullgren/modern/simple3d/mu.body", Color.blue);
   }
 
   private JMenuBar buildMenuBar() {
@@ -111,24 +109,13 @@ public class Simple3D {
     JMenu menu = new JMenu("Body");
     ButtonGroup group = new ButtonGroup();
 
-    menu.add(radioItem("MU", true, group, () -> {
-      body = BodyLoader.load("/com/ullgren/modern/simple3d/mu.body", body.getColour());
-      for (int i = 0; i < 60; i++) body.rotateZY();
-      animationController.setBody(body);
-      canvas.repaint();
-    }));
+    menu.add(radioItem("MU", true, group, () -> loadShape("/com/ullgren/modern/simple3d/mu.body")));
     menu.addSeparator();
     menu.add(radioItem("Cube",        false, group, () -> loadShape("/com/ullgren/modern/simple3d/cube.body")));
     menu.add(radioItem("Tetrahedron", false, group, () -> loadShape("/com/ullgren/modern/simple3d/tetrahedron.body")));
     menu.add(radioItem("Octahedron",  false, group, () -> loadShape("/com/ullgren/modern/simple3d/octahedron.body")));
     menu.add(radioItem("Icosahedron", false, group, () -> loadShape("/com/ullgren/modern/simple3d/icosahedron.body")));
-    menu.add(radioItem("Torus",       false, group, () -> {
-      body = BodyLoader.load("/com/ullgren/modern/simple3d/torus.body", body.getColour());
-      for (int i = 0; i < 5; i++) body.rotateXZ();
-      for (int i = 0; i < 5; i++) body.rotateYZ();
-      animationController.setBody(body);
-      canvas.repaint();
-    }));
+    menu.add(radioItem("Torus",       false, group, () -> loadShape("/com/ullgren/modern/simple3d/torus.body")));
     menu.add(radioItem("Pyramid",     false, group, () -> loadShape("/com/ullgren/modern/simple3d/pyramid.body")));
     menu.addSeparator();
 

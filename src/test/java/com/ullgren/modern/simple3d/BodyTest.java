@@ -412,4 +412,39 @@ public class BodyTest {
       assertTrue(ao <= 1.0f, "AO[" + i + "] must be <= 1");
     }
   }
+
+  // -------------------------------------------------------------------------
+  // Orientation section
+  // -------------------------------------------------------------------------
+
+  @Test
+  public void orientation_ZY1_rotatesPointCorrectly() {
+    Body body = BodyLoader.load(RES + "test_orientation.body", Color.blue);
+    // Point 1 was (0, 100, 0). After one rotateZY:
+    //   new_y =  100 * COS(3°)
+    //   new_z = -100 * SIN(3°)
+    double expectedY =  100 * Point3D.COS;
+    double expectedZ = -100 * Point3D.SIN;
+    assertEquals(expectedY, body.pointAt(1).getY(), 1e-9, "y after ZY rotation");
+    assertEquals(expectedZ, body.pointAt(1).getZ(), 1e-9, "z after ZY rotation");
+    assertEquals(0.0,       body.pointAt(1).getX(), 1e-9, "x must be unchanged by ZY");
+  }
+
+  @Test
+  public void orientation_missing_bodyLoadedUnrotated() {
+    Body body = BodyLoader.load(RES + "test_triangle.body", Color.blue);
+    assertEquals(0.0, body.pointAt(1).getZ(), 1e-9, "no orientation → points unchanged");
+  }
+
+  @Test
+  public void orientation_unknownAxis_throwsIllegalArgument() {
+    assertThrows(IllegalArgumentException.class,
+        () -> BodyLoader.load(RES + "test_orientation_bad_axis.body", Color.blue));
+  }
+
+  @Test
+  public void orientation_zeroSteps_throwsIllegalArgument() {
+    assertThrows(IllegalArgumentException.class,
+        () -> BodyLoader.load(RES + "test_orientation_zero_steps.body", Color.blue));
+  }
 }

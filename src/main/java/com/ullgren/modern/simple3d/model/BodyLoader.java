@@ -22,10 +22,27 @@ import java.util.List;
  * faces
  * i0 i1 i2 ...
  * ...
+ *
+ * orientation        (optional)
+ * XZ 5              (axis ∈ {XZ, YZ, ZX, ZY}, steps > 0)
+ * YZ 5
  * </pre>
- * Lines starting with {@code #} and blank lines are ignored.
+ * Lines starting with {@code #} and blank lines are ignored. Sections may appear in any order,
+ * except that {@code faces} must follow {@code points} (face indices are validated against the
+ * point list as they are parsed).
  */
 public final class BodyLoader {
+
+  private enum Axis {
+    XZ { @Override void apply(Body b) { b.rotateXZ(); } },
+    YZ { @Override void apply(Body b) { b.rotateYZ(); } },
+    ZX { @Override void apply(Body b) { b.rotateZX(); } },
+    ZY { @Override void apply(Body b) { b.rotateZY(); } };
+
+    abstract void apply(Body b);
+  }
+
+  private record OrientationStep(Axis axis, int steps) {}
 
   private BodyLoader() {}
 
@@ -46,8 +63,9 @@ public final class BodyLoader {
     try (BufferedReader reader = new BufferedReader(
         new InputStreamReader(stream, StandardCharsets.UTF_8))) {
 
-      List<Point3D> points = new ArrayList<>();
-      List<int[]>   faces  = new ArrayList<>();
+      List<Point3D>        points      = new ArrayList<>();
+      List<int[]>          faces       = new ArrayList<>();
+      List<OrientationStep> orientation = new ArrayList<>();
       String section = null;
       String line;
       int lineNum = 0;
@@ -57,7 +75,7 @@ public final class BodyLoader {
         line = line.strip();
         if (line.isEmpty() || line.startsWith("#")) continue;
 
-        if (line.equals("points") || line.equals("faces")) {
+        if (line.equals("points") || line.equals("faces") || line.equals("orientation")) {
           section = line;
           continue;
         }
@@ -76,7 +94,7 @@ public final class BodyLoader {
               Double.parseDouble(tokens[0]),
               Double.parseDouble(tokens[1]),
               Double.parseDouble(tokens[2])));
-        } else {
+        } else if (section.equals("faces")) {
           if (tokens.length < 3) {
             throw new IllegalArgumentException(
                 resource + ":" + lineNum + ": face must have at least 3 indices");
@@ -91,6 +109,25 @@ public final class BodyLoader {
             }
           }
           faces.add(indices);
+        } else { // orientation
+          if (tokens.length != 2) {
+            throw new IllegalArgumentException(
+                resource + ":" + lineNum + ": orientation entry must be '<AXIS> <STEPS>'");
+          }
+          Axis axis;
+          try {
+            axis = Axis.valueOf(tokens[0].toUpperCase());
+          } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(
+                resource + ":" + lineNum + ": unknown axis '" + tokens[0]
+                + "' — expected one of XZ, YZ, ZX, ZY");
+          }
+          int steps = Integer.parseInt(tokens[1]);
+          if (steps <= 0) {
+            throw new IllegalArgumentException(
+                resource + ":" + lineNum + ": orientation steps must be positive, got " + steps);
+          }
+          orientation.add(new OrientationStep(axis, steps));
         }
       }
 
@@ -100,7 +137,13 @@ public final class BodyLoader {
       if (faces.isEmpty()) {
         throw new IllegalArgumentException(resource + ": no faces defined");
       }
-      return new Body(points.toArray(new Point3D[0]), faces.toArray(new int[0][]), colour);
+      Body body = new Body(points.toArray(new Point3D[0]), faces.toArray(new int[0][]), colour);
+      for (OrientationStep step : orientation) {
+        for (int i = 0; i < step.steps(); i++) {
+          step.axis().apply(body);
+        }
+      }
+      return body;
 
     } catch (IOException e) {
       throw new UncheckedIOException("Failed to read shape resource: " + resource, e);
