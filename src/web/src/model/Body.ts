@@ -72,16 +72,19 @@ export class Body {
   private static parse(text: string, colour: Colour, sourceHint: string): Body {
     const points: Point3D[] = [];
     const faces:  number[][] = [];
-    let section: 'points' | 'faces' | null = null;
+    const orientationSteps: { axis: string; steps: number }[] = [];
+    let section: 'points' | 'faces' | 'orientation' | null = null;
     let lineNum = 0;
+
+    const VALID_AXES = new Set(['XZ', 'YZ', 'ZX', 'ZY']);
 
     for (const raw of text.split('\n')) {
       lineNum++;
       const line = raw.trim();
       if (!line || line.startsWith('#')) continue;
 
-      if (line === 'points' || line === 'faces') {
-        section = line;
+      if (line === 'points' || line === 'faces' || line === 'orientation') {
+        section = line as 'points' | 'faces' | 'orientation';
         continue;
       }
       if (section === null) {
@@ -94,7 +97,7 @@ export class Body {
           throw new Error(`${sourceHint}:${lineNum}: point must have exactly 3 coordinates`);
         }
         points.push(new Point3D(+tokens[0], +tokens[1], +tokens[2]));
-      } else {
+      } else if (section === 'faces') {
         if (tokens.length < 3) {
           throw new Error(`${sourceHint}:${lineNum}: face must have at least 3 indices`);
         }
@@ -105,6 +108,19 @@ export class Body {
           }
           return idx;
         }));
+      } else { // orientation
+        if (tokens.length !== 2) {
+          throw new Error(`${sourceHint}:${lineNum}: orientation entry must be '<AXIS> <STEPS>'`);
+        }
+        const axis = tokens[0].toUpperCase();
+        if (!VALID_AXES.has(axis)) {
+          throw new Error(`${sourceHint}:${lineNum}: unknown axis '${tokens[0]}' — expected one of XZ, YZ, ZX, ZY`);
+        }
+        const steps = parseInt(tokens[1], 10);
+        if (isNaN(steps) || steps <= 0) {
+          throw new Error(`${sourceHint}:${lineNum}: orientation steps must be a positive integer, got '${tokens[1]}'`);
+        }
+        orientationSteps.push({ axis, steps });
       }
     }
 
@@ -112,7 +128,17 @@ export class Body {
     if (faces.length === 0)  throw new Error(`${sourceHint}: no faces defined`);
 
     const vertexAO = Body.computeAO(points, faces);
-    return new Body(points, faces, colour, vertexAO);
+    const body = new Body(points, faces, colour, vertexAO);
+
+    for (const { axis, steps } of orientationSteps) {
+      const rotate = axis === 'XZ' ? () => body.rotateXZ()
+                   : axis === 'YZ' ? () => body.rotateYZ()
+                   : axis === 'ZX' ? () => body.rotateZX()
+                   :                 () => body.rotateZY();
+      for (let i = 0; i < steps; i++) rotate();
+    }
+
+    return body;
   }
 
   /**

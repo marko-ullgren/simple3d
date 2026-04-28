@@ -16,7 +16,7 @@ export default defineConfig({
         {
           src: path.resolve(
             __dirname,
-            '../main/resources/com/ullgren/modern/simple3d/*.body',
+            '../main/resources/com/ullgren/modern/simple3d/*.{body,list}',
           ),
           dest: 'shapes',
         },

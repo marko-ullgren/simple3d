@@ -61,18 +61,29 @@ function shapeUrl(name: string): string {
   return import.meta.env.BASE_URL + 'shapes/' + name + '.body';
 }
 
+async function loadBodyList(): Promise<string[]> {
+  const url = import.meta.env.BASE_URL + 'shapes/bodies.list';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to load bodies.list (${res.status})`);
+  return (await res.text())
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 0 && !l.startsWith('#'));
+}
+
+function populateBodySelect(names: string[]): void {
+  bodySelect.innerHTML = '';
+  for (const name of names) {
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    bodySelect.appendChild(option);
+  }
+}
+
 async function loadShape(name: string, colour?: Colour): Promise<void> {
   const col = colour ?? body?.getColour() ?? COLOURS.blue;
-  const loaded = await Body.load(shapeUrl(name), col);
-
-  if (name === 'mu') {
-    for (let i = 0; i < 60; i++) loaded.rotateZY();
-  } else if (name === 'torus') {
-    for (let i = 0; i < 5; i++) loaded.rotateXZ();
-    for (let i = 0; i < 5; i++) loaded.rotateYZ();
-  }
-
-  body = loaded;
+  body = await Body.load(shapeUrl(name), col);
   if (animCtrl) {
     animCtrl.setBody(body);
   }
@@ -145,7 +156,10 @@ async function init(): Promise<void> {
   effect   = new ElasticEffect(repaint);
   renderer.setEffect(effect);
 
-  await loadShape('mu', COLOURS.blue);
+  const names = await loadBodyList();
+  populateBodySelect(names);
+
+  await loadShape(names[0], COLOURS.blue);
 
   animCtrl = new AnimationController(body, repaint);
   animCtrl.kickstart(0.5, 0.5);
