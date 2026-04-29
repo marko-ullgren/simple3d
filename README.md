@@ -65,7 +65,10 @@ A faithful TypeScript port of the modern Java app that runs entirely in the brow
 | `src/render/effect/VortexEffect.ts` | Swirling rotation that unwinds over 1.2 s |
 | `src/render/effect/ShockwaveEffect.ts` | Single expanding ring of radial displacement |
 | `src/render/effect/NoEffect.ts` | Null-object — disables the click effect |
-| `src/render/Renderer.ts` | Gouraud scanline rasteriser into `ImageData`; cap polygons via Canvas 2D paths; 2× SSAA |
+| `src/render/Renderer.ts` | Gouraud scanline rasteriser into `ImageData`; ear-clip triangulation for non-convex cap faces; per-pixel texture via `Texture.applyPacked()`; wireframe mode; 2× SSAA |
+| `src/render/texture/Texture.ts` | `Texture` interface — `applyPacked(wx, wy, wz, baseR, baseG, baseB, shade)` returns packed RGB |
+| `src/render/texture/NoTexture.ts` | Null-object texture: Gouraud shading only, no surface pattern |
+| `src/render/texture/StoneTexture.ts` | Procedural three-octave 3D value noise sampled at object-space coords baked at load time |
 | `src/control/AnimationController.ts` | Angular momentum + friction decay |
 | `src/main.ts` | Wires everything; `requestAnimationFrame` render loop; `<select>` menus |
 
@@ -84,7 +87,7 @@ npm run dev    # → http://localhost:5173
 
 ### Tests
 
-85 unit tests cover the model, control, and effect layers:
+110 unit tests cover the model, control, effect, and rendering layers:
 
 ```bash
 cd src/web
@@ -94,7 +97,7 @@ npm test        # run once
 npm run test:watch  # re-run on file changes
 ```
 
-Tests are co-located with source files (`*.test.ts`). Effect tests (`render/effect/*.test.ts`) verify pixel-level displacement logic directly against `Uint8ClampedArray` buffers — no browser or canvas required. The rendering pipeline (`Renderer.ts`, `StarField.ts`) is verified visually.
+Tests are co-located with source files (`*.test.ts`). Effect tests (`render/effect/*.test.ts`) verify pixel-level displacement logic directly against `Uint8ClampedArray` buffers — no browser or canvas required. Renderer tests cover the filled, stone-texture, and wireframe rendering paths including ear-clip triangulation of non-convex cap faces.
 
 ### Deployment
 
