@@ -8,6 +8,8 @@ import { RippleEffect } from './render/effect/RippleEffect.js';
 import { VortexEffect } from './render/effect/VortexEffect.js';
 import { ShockwaveEffect } from './render/effect/ShockwaveEffect.js';
 import { AnimationController } from './control/AnimationController.js';
+import { NoTexture } from './render/texture/NoTexture.js';
+import { StoneTexture } from './render/texture/StoneTexture.js';
 
 // Sensitivity: minimum pixel distance from centre for a click to affect rotation.
 const SENSITIVITY = 50;
@@ -18,6 +20,7 @@ const canvas      = document.getElementById('canvas') as HTMLCanvasElement;
 const bodySelect  = document.getElementById('body-select') as HTMLSelectElement;
 const colourSelect = document.getElementById('colour-select') as HTMLSelectElement;
 const effectSelect = document.getElementById('effect-select') as HTMLSelectElement;
+const textureSelect = document.getElementById('texture-select') as HTMLSelectElement;
 const ctx         = canvas.getContext('2d')!;
 
 const starField = new StarField();
@@ -133,6 +136,26 @@ effectSelect.addEventListener('change', () => {
     case 'shockwave': switchEffect(new ShockwaveEffect(repaint)); break;
     case 'none':      switchEffect(new NoEffect());               break;
   }
+});
+
+// --- Texture switching ---
+
+textureSelect.addEventListener('change', () => {
+  switch (textureSelect.value) {
+    case 'stone':
+      renderer.setWireframeMode(false);
+      renderer.setTexture(new StoneTexture());
+      break;
+    case 'wireframe':
+      renderer.setWireframeMode(true);
+      break;
+    case 'none':
+    default:
+      renderer.setWireframeMode(false);
+      renderer.setTexture(new NoTexture());
+      break;
+  }
+  repaint();
 });
 
 // --- Menu events ---
