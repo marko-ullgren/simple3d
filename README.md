@@ -29,9 +29,12 @@ A complete rewrite targeting Java 21, keeping the same geometry and interaction 
   - Back-face culling discards faces pointing away from the viewer
   - Diffuse + ambient Gouraud shading with smooth normals across adjacent faces
   - Per-vertex ambient occlusion baked at load time — concave corners appear naturally darker
-  - Side faces are fan-triangulated and sorted back-to-front (painter's algorithm)
-  - The non-convex cap face is drawn last — geometrically guaranteed to be in front of any side face it overlaps
+  - All faces are triangulated (ear-clip algorithm for non-convex caps) and sorted back-to-front (painter's algorithm)
   - 2× supersampling anti-aliasing for smooth edges
+- **Surface textures** — selectable via the Texture menu:
+  - *None* (default) — smooth Gouraud shading, no texture
+  - *Stone* — procedural three-octave 3D value noise sampled at object-space coordinates; the pattern is baked at load time and stays fixed to the surface during rotation
+  - *Wireframe* — draws only edges, dark for far edges and bright for near ones, reproducing the look of the 1998 original
 - **Image-space effects** triggered on mouse click — four selectable via the Effect menu:
   - *Elastic Dent* (default) — spring-damper compression that bounces back
   - *Ripple* — concentric sine-wave rings that radiate outward and fade
@@ -137,3 +140,4 @@ mvn exec:java@vintage
 - **Body menu** — switch between seven shapes: MU logo (default), Cube, Tetrahedron, Octahedron, Icosahedron, Torus, and Pyramid
 - **Colour menu** — change the object colour
 - **Effect menu** — choose the click effect: Elastic Dent (default), Ripple, Vortex, Shockwave, or No Effect
+- **Texture menu** — choose the surface appearance: None (default), Stone, or Wireframe

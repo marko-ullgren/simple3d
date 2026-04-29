@@ -143,6 +143,7 @@ public final class BodyLoader {
           step.axis().apply(body);
         }
       }
+      body.bakeTextureCoords();
       return body;
 
     } catch (IOException e) {

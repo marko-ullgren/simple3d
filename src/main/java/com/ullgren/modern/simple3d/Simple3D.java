@@ -32,6 +32,8 @@ import com.ullgren.modern.simple3d.render.effect.RippleEffect;
 import com.ullgren.modern.simple3d.render.effect.ShockwaveEffect;
 import com.ullgren.modern.simple3d.render.StarField;
 import com.ullgren.modern.simple3d.render.effect.VortexEffect;
+import com.ullgren.modern.simple3d.render.texture.NoTexture;
+import com.ullgren.modern.simple3d.render.texture.StoneTexture;
 
 /**
  * Simple3D renders a three-dimensional solid body that rotates on screen. Clicking different
@@ -110,6 +112,7 @@ public class Simple3D {
     menuBar.add(buildBodyMenu());
     menuBar.add(buildColourMenu());
     menuBar.add(buildEffectMenu());
+    menuBar.add(buildTextureMenu());
     return menuBar;
   }
 
@@ -163,6 +166,16 @@ public class Simple3D {
     menu.add(radioItem("Shockwave",    false, group, () -> switchEffect(new ShockwaveEffect(canvas::repaint))));
     menu.addSeparator();
     menu.add(radioItem("No Effect",    false, group, () -> switchEffect(new NoEffect())));
+    return menu;
+  }
+
+  private JMenu buildTextureMenu() {
+    JMenu menu = new JMenu("Texture");
+    ButtonGroup group = new ButtonGroup();
+    menu.add(radioItem("None",      true,  group, () -> { renderer.setWireframeMode(false); renderer.setTexture(new NoTexture());    canvas.repaint(); }));
+    menu.add(radioItem("Stone",     false, group, () -> { renderer.setWireframeMode(false); renderer.setTexture(new StoneTexture()); canvas.repaint(); }));
+    menu.addSeparator();
+    menu.add(radioItem("Wireframe", false, group, () -> { renderer.setWireframeMode(true);  canvas.repaint(); }));
     return menu;
   }
 

@@ -19,6 +19,13 @@ public class Body {
   private Color   colour;
   /** Per-vertex ambient occlusion factors, baked once at construction time. */
   private final float[] vertexAO;
+  /**
+   * Object-space coordinates used for texture sampling.
+   * Initialised from the point positions at construction time and <em>re-baked</em> by
+   * {@link BodyLoader} after all orientation steps have been applied, so that the coords
+   * are stable during animation.
+   */
+  private final double[][] texCoords;
 
   /**
    * Package-private constructor used by {@link BodyLoader}.
@@ -26,10 +33,37 @@ public class Body {
    * always holds.
    */
   Body(Point3D[] points, int[][] faces, Color colour) {
-    this.points   = points;
-    this.faces    = faces;
-    this.colour   = colour;
-    this.vertexAO = computeAO(points, faces);
+    this.points    = points;
+    this.faces     = faces;
+    this.colour    = colour;
+    this.vertexAO  = computeAO(points, faces);
+    this.texCoords = new double[points.length][3];
+    snapshotTexCoords();
+  }
+
+  /**
+   * Snapshots the current point positions into {@link #texCoords}.
+   * Called by {@link BodyLoader} after orientation steps so the texture origin is the
+   * post-orientation rest pose, not the pre-rotation construction state.
+   */
+  void bakeTextureCoords() {
+    snapshotTexCoords();
+  }
+
+  private void snapshotTexCoords() {
+    for (int i = 0; i < points.length; i++) {
+      texCoords[i][0] = points[i].getX();
+      texCoords[i][1] = points[i].getY();
+      texCoords[i][2] = points[i].getZ();
+    }
+  }
+
+  /**
+   * Returns the object-space texture coordinate for vertex {@code i} as {@code [x, y, z]}.
+   * These coordinates are fixed at load time and do not change during animation.
+   */
+  public double[] getTexCoord(int i) {
+    return texCoords[i];
   }
 
   public void setColour(Color newColour) {
