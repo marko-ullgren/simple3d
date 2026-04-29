@@ -172,8 +172,10 @@ public class Simple3D {
   private JMenu buildTextureMenu() {
     JMenu menu = new JMenu("Texture");
     ButtonGroup group = new ButtonGroup();
-    menu.add(radioItem("None",  true,  group, () -> { renderer.setTexture(new NoTexture());    canvas.repaint(); }));
-    menu.add(radioItem("Stone", false, group, () -> { renderer.setTexture(new StoneTexture()); canvas.repaint(); }));
+    menu.add(radioItem("None",      true,  group, () -> { renderer.setWireframeMode(false); renderer.setTexture(new NoTexture());    canvas.repaint(); }));
+    menu.add(radioItem("Stone",     false, group, () -> { renderer.setWireframeMode(false); renderer.setTexture(new StoneTexture()); canvas.repaint(); }));
+    menu.addSeparator();
+    menu.add(radioItem("Wireframe", false, group, () -> { renderer.setWireframeMode(true);  canvas.repaint(); }));
     return menu;
   }
 

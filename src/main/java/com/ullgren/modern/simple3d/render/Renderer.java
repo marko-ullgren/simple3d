@@ -56,6 +56,8 @@ public class Renderer {
   private Effect effect;
   /** Surface texture applied per pixel during rasterisation. */
   private Texture texture = new NoTexture();
+  /** When {@code true}, renders edges only (wireframe) instead of filled surfaces. */
+  private boolean wireframeMode = false;
 
   /** A scan-line rendered triangle with per-corner Gouraud shading and object-space tex coords. */
   private record Triangle(int x0, int y0, int x1, int y1, int x2, int y2,
@@ -72,6 +74,14 @@ public class Renderer {
   /** Attaches a surface texture applied during rasterisation. */
   public void setTexture(Texture texture) {
     this.texture = texture;
+  }
+
+  /**
+   * When {@code true} the body is rendered as a wireframe (edges only), like the vintage app.
+   * Textures are ignored in wireframe mode.
+   */
+  public void setWireframeMode(boolean wireframeMode) {
+    this.wireframeMode = wireframeMode;
   }
 
   /**
@@ -107,84 +117,22 @@ public class Renderer {
       sz[i] = p.getZ();
     }
 
-    int fc = body.faceCount();
-
-    // Pre-compute per-face normals.
-    double[][] faceNormals = new double[fc][];
-    for (int fi = 0; fi < fc; fi++) {
-      faceNormals[fi] = computeFaceNormal(body, body.faceAt(fi));
-    }
-
-    // Build vertex-to-face adjacency for smooth normal computation.
-    @SuppressWarnings("unchecked")
-    List<Integer>[] vertexFaces = new List[n];
-    for (int i = 0; i < n; i++) vertexFaces[i] = new ArrayList<>();
-    for (int fi = 0; fi < fc; fi++) {
-      for (int idx : body.faceAt(fi)) vertexFaces[idx].add(fi);
-    }
-
-    List<Triangle> sideTris = new ArrayList<>();
-    Color colour = body.getColour();
-
-    for (int fi = 0; fi < fc; fi++) {
-      int[] face = body.faceAt(fi);
-      double[] fn = faceNormals[fi];
-      if (fn[2] >= 0) continue; // back-face cull
-
-      boolean isLargeFace = face.length > 4;
-      float[] cs = new float[face.length];
-      if (isLargeFace) {
-        // Flat shading: every vertex of the cap gets the same shade derived from face normal.
-        double fnLen = Math.sqrt(fn[0] * fn[0] + fn[1] * fn[1] + fn[2] * fn[2]);
-        double shade = Math.max(AMBIENT, fnLen > 0 ? -fn[2] / fnLen : AMBIENT);
-        double avgAO = 0;
-        for (int idx : face) avgAO += body.getVertexAO(idx);
-        avgAO /= face.length;
-        shade = Math.max(AMBIENT * (1.0 - AO_STRENGTH * avgAO), shade);
-        Arrays.fill(cs, (float) shade);
-      } else {
-        for (int ci = 0; ci < face.length; ci++) {
-          cs[ci] = (float) computeCornerShade(body, face[ci], fi, faceNormals, vertexFaces,
-              body.getVertexAO(face[ci]));
-        }
-      }
-
-      // Triangulate — ear clipping for non-convex caps, simple fan for everything else.
-      List<int[]> tris = (face.length > 4)
-          ? earClip(face, sx, sy)
-          : fanTriangulate(face);
-
-      for (int[] tri : tris) {
-        int a = face[tri[0]], b = face[tri[1]], c = face[tri[2]];
-        double avgZ = (sz[a] + sz[b] + sz[c]) / 3.0;
-        double[] ta = body.getTexCoord(a);
-        double[] tb = body.getTexCoord(b);
-        double[] tc = body.getTexCoord(c);
-        sideTris.add(new Triangle(sx[a], sy[a], sx[b], sy[b], sx[c], sy[c], avgZ,
-            cs[tri[0]], cs[tri[1]], cs[tri[2]],
-            (float) ta[0], (float) ta[1], (float) ta[2],
-            (float) tb[0], (float) tb[1], (float) tb[2],
-            (float) tc[0], (float) tc[1], (float) tc[2]));
-      }
-    }
-
-    // Render Gouraud triangles into the 2× hi-res buffer (recreated only on resize).
+    // Ensure hi-res buffer exists and is cleared.
     if (hiResImage == null || hiResImageW != hiW || hiResImageH != hiH) {
       hiResImage  = new BufferedImage(hiW, hiH, BufferedImage.TYPE_INT_ARGB);
       hiResImageW = hiW;
       hiResImageH = hiH;
     } else {
-      int[] pix = ((DataBufferInt) hiResImage.getRaster().getDataBuffer()).getData();
-      Arrays.fill(pix, 0);
+      Arrays.fill(((DataBufferInt) hiResImage.getRaster().getDataBuffer()).getData(), 0);
     }
-    int[] hiPixels = ((DataBufferInt) hiResImage.getRaster().getDataBuffer()).getData();
 
-    sideTris.sort((t1, t2) -> Double.compare(t2.avgZ(), t1.avgZ()));
-    for (Triangle t : sideTris) {
-      drawGouraudTriangle(hiPixels, hiW, hiH, colour,
-          t.x0(), t.y0(), t.s0(), t.wx0(), t.wy0(), t.wz0(),
-          t.x1(), t.y1(), t.s1(), t.wx1(), t.wy1(), t.wz1(),
-          t.x2(), t.y2(), t.s2(), t.wx2(), t.wy2(), t.wz2());
+    if (wireframeMode) {
+      Graphics2D hiG = hiResImage.createGraphics();
+      hiG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+      renderWireframe(body, sx, sy, sz, body.getColour(), hiG);
+      hiG.dispose();
+    } else {
+      renderFilled(body, sx, sy, sz, hiW, hiH);
     }
 
     // Downsample 2× → 1× with bilinear interpolation — this is the AA step.
@@ -304,7 +252,98 @@ public class Renderer {
   }
 
   /**
- as [nx, ny, nz] computed from the first three
+   * Draws all unique edges of {@code body} as anti-aliased lines.
+   * Front edges (avgZ <= 0) are drawn in the body colour; back edges are drawn darker,
+   * reproducing the vintage app's depth-cueing effect.
+   */
+  private void renderWireframe(Body body, int[] sx, int[] sy, double[] sz,
+                               Color colour, Graphics2D g) {
+    Color dimColour = colour.darker().darker();
+    g.setStroke(new java.awt.BasicStroke(2f));
+
+    java.util.HashSet<Long> drawn = new java.util.HashSet<>();
+    int fc = body.faceCount();
+    for (int fi = 0; fi < fc; fi++) {
+      int[] face = body.faceAt(fi);
+      for (int i = 0; i < face.length; i++) {
+        int a = face[i], b = face[(i + 1) % face.length];
+        long key = a < b ? ((long) a << 32) | b : ((long) b << 32) | a;
+        if (!drawn.add(key)) continue;
+        double avgZ = (sz[a] + sz[b]) / 2.0;
+        g.setColor(avgZ > 0 ? dimColour : colour);
+        g.drawLine(sx[a], sy[a], sx[b], sy[b]);
+      }
+    }
+  }
+
+  /** Filled (Gouraud + texture) rendering path, invoked when not in wireframe mode. */
+  private void renderFilled(Body body, int[] sx, int[] sy, double[] sz, int hiW, int hiH) {
+    int n  = body.pointCount();
+    int fc = body.faceCount();
+
+    double[][] faceNormals = new double[fc][];
+    for (int fi = 0; fi < fc; fi++) {
+      faceNormals[fi] = computeFaceNormal(body, body.faceAt(fi));
+    }
+
+    @SuppressWarnings("unchecked")
+    List<Integer>[] vertexFaces = new List[n];
+    for (int i = 0; i < n; i++) vertexFaces[i] = new ArrayList<>();
+    for (int fi = 0; fi < fc; fi++) {
+      for (int idx : body.faceAt(fi)) vertexFaces[idx].add(fi);
+    }
+
+    List<Triangle> sideTris = new ArrayList<>();
+    Color colour = body.getColour();
+
+    for (int fi = 0; fi < fc; fi++) {
+      int[] face = body.faceAt(fi);
+      double[] fn = faceNormals[fi];
+      if (fn[2] >= 0) continue; // back-face cull
+
+      float[] cs = new float[face.length];
+      if (face.length > 4) {
+        double fnLen = Math.sqrt(fn[0] * fn[0] + fn[1] * fn[1] + fn[2] * fn[2]);
+        double shade = Math.max(AMBIENT, fnLen > 0 ? -fn[2] / fnLen : AMBIENT);
+        double avgAO = 0;
+        for (int idx : face) avgAO += body.getVertexAO(idx);
+        avgAO /= face.length;
+        shade = Math.max(AMBIENT * (1.0 - AO_STRENGTH * avgAO), shade);
+        Arrays.fill(cs, (float) shade);
+      } else {
+        for (int ci = 0; ci < face.length; ci++) {
+          cs[ci] = (float) computeCornerShade(body, face[ci], fi, faceNormals, vertexFaces,
+              body.getVertexAO(face[ci]));
+        }
+      }
+
+      List<int[]> tris = (face.length > 4) ? earClip(face, sx, sy) : fanTriangulate(face);
+      for (int[] tri : tris) {
+        int a = face[tri[0]], b = face[tri[1]], c = face[tri[2]];
+        double avgZ = (sz[a] + sz[b] + sz[c]) / 3.0;
+        double[] ta = body.getTexCoord(a);
+        double[] tb = body.getTexCoord(b);
+        double[] tc = body.getTexCoord(c);
+        sideTris.add(new Triangle(sx[a], sy[a], sx[b], sy[b], sx[c], sy[c], avgZ,
+            cs[tri[0]], cs[tri[1]], cs[tri[2]],
+            (float) ta[0], (float) ta[1], (float) ta[2],
+            (float) tb[0], (float) tb[1], (float) tb[2],
+            (float) tc[0], (float) tc[1], (float) tc[2]));
+      }
+    }
+
+    int[] hiPixels = ((DataBufferInt) hiResImage.getRaster().getDataBuffer()).getData();
+    sideTris.sort((t1, t2) -> Double.compare(t2.avgZ(), t1.avgZ()));
+    for (Triangle t : sideTris) {
+      drawGouraudTriangle(hiPixels, hiW, hiH, colour,
+          t.x0(), t.y0(), t.s0(), t.wx0(), t.wy0(), t.wz0(),
+          t.x1(), t.y1(), t.s1(), t.wx1(), t.wy1(), t.wz1(),
+          t.x2(), t.y2(), t.s2(), t.wx2(), t.wy2(), t.wz2());
+    }
+  }
+
+  /**
+   * Returns the (unnormalised) face normal as [nx, ny, nz] computed from the first three
    * vertices of {@code face} using the cross product.
    */
   private double[] computeFaceNormal(Body body, int[] face) {
