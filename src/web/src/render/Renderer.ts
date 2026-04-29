@@ -1,6 +1,8 @@
 import { Body } from '../model/Body.js';
 import { Point3D } from '../model/Point3D.js';
 import type { Effect } from './effect/Effect.js';
+import type { Texture } from './texture/Texture.js';
+import { NoTexture } from './texture/NoTexture.js';
 
 /**
  * Renders a {@link Body} onto a Canvas 2D context using Gouraud shading for side faces
@@ -11,12 +13,13 @@ import type { Effect } from './effect/Effect.js';
  *
  * Architecture (per frame):
  *  1. Project all points.
- *  2. Classify visible faces into Gouraud triangles (≤ 4 vertices) and cap polygons (> 4).
- *  3. Rasterise Gouraud triangles directly into an ImageData pixel buffer.
- *  4. putImageData → draw cap polygons via canvas paths (AA enabled).
- *  5. Downsample 2× → 1× geometry canvas (transparent background; stars show through).
- *  6. If elastic effect active: readback geometry pixels, apply displacement, putImageData.
- *  7. Caller composites geometry canvas over the star background.
+ *  2. Classify visible faces; ear-clip cap faces (> 4 verts) into triangles.
+ *  3. Rasterise all triangles directly into an ImageData pixel buffer,
+ *     delegating per-pixel colour to the active Texture.
+ *  4. putImageData → downsample 2× → 1× geometry canvas.
+ *  5. If elastic effect active: readback geometry pixels, apply displacement, putImageData.
+ *  6. Caller composites geometry canvas over the star background.
+ *  7. In wireframe mode, steps 3-4 are replaced by edge strokes on the hi-res canvas.
  */
 export class Renderer {
   private static readonly PROJECTION_FACTOR    = 0.001;
@@ -33,8 +36,16 @@ export class Renderer {
   private geoH = 0;
 
   private effect: Effect | null = null;
+  /** Surface texture applied per pixel during rasterisation. */
+  private texture: Texture = new NoTexture();
+  /** When true, renders edges only (wireframe) instead of filled surfaces. */
+  private wireframeMode = false;
 
   setEffect(e: Effect): void { this.effect = e; }
+  /** Attaches a surface texture applied during rasterisation. */
+  setTexture(t: Texture): void { this.texture = t; }
+  /** When true, renders as wireframe edges; textures are ignored. */
+  setWireframeMode(b: boolean): void { this.wireframeMode = b; }
 
   /**
    * Renders {@code body} and composites the result onto {@code ctx}.
@@ -69,100 +80,16 @@ export class Renderer {
       sz[i] = p.z;
     }
 
-    const fc = body.faceCount();
-
-    // Per-face normals (unnormalised; z component < 0 → faces viewer).
-    const faceNormals: [number, number, number][] = [];
-    for (let fi = 0; fi < fc; fi++) {
-      faceNormals.push(this.computeFaceNormal(body, body.faceAt(fi)));
-    }
-
-    // Vertex → adjacent face indices for smooth shading.
-    const vertexFaces: number[][] = Array.from({ length: n }, () => []);
-    for (let fi = 0; fi < fc; fi++) {
-      for (const idx of body.faceAt(fi)) vertexFaces[idx].push(fi);
-    }
-
-    type Triangle = {
-      x0: number; y0: number; x1: number; y1: number; x2: number; y2: number;
-      avgZ: number; s0: number; s1: number; s2: number;
-    };
-    type CapPoly = { px: number[]; py: number[]; avgZ: number; r: number; g: number; b: number };
-
-    const sideTris: Triangle[] = [];
-    const capPolys: CapPoly[]  = [];
-    const colour = body.getColour();
-
-    for (let fi = 0; fi < fc; fi++) {
-      const face = body.faceAt(fi);
-      const fn   = faceNormals[fi];
-      if (fn[2] >= 0) continue; // back-face cull
-
-      if (face.length > 4) {
-        // Cap polygon — flat shading.
-        const fnLen = Math.sqrt(fn[0] ** 2 + fn[1] ** 2 + fn[2] ** 2);
-        let shade = Math.max(Renderer.AMBIENT, fnLen > 0 ? -fn[2] / fnLen : Renderer.AMBIENT);
-        let avgAO = 0;
-        for (const idx of face) avgAO += body.getVertexAO(idx);
-        avgAO /= face.length;
-        const aoAmbient = Renderer.AMBIENT * (1 - Renderer.AO_STRENGTH * avgAO);
-        shade = Math.max(aoAmbient, shade);
-        let avgZ = 0;
-        for (const idx of face) avgZ += sz[idx];
-        avgZ /= face.length;
-        capPolys.push({
-          px: face.map(i => sx[i]),
-          py: face.map(i => sy[i]),
-          avgZ,
-          r: Math.min(255, colour.r * shade),
-          g: Math.min(255, colour.g * shade),
-          b: Math.min(255, colour.b * shade),
-        });
-      } else {
-        // Side face — Gouraud shading, fan-triangulated.
-        const cs = face.map((vIdx, ci) =>
-          this.computeCornerShade(body, vIdx, fi, faceNormals, vertexFaces, body.getVertexAO(vIdx), ci),
-        );
-        for (let i = 1; i < face.length - 1; i++) {
-          const a = face[0], b = face[i], c = face[i + 1];
-          sideTris.push({
-            x0: sx[a], y0: sy[a], x1: sx[b], y1: sy[b], x2: sx[c], y2: sy[c],
-            avgZ: (sz[a] + sz[b] + sz[c]) / 3,
-            s0: cs[0], s1: cs[i], s2: cs[i + 1],
-          });
-        }
-      }
-    }
-
     // --- Allocate / reuse off-DOM canvases ---
-    const hiCtx = this.getHiCtx(hiW, hiH);
+    const hiCtx  = this.getHiCtx(hiW, hiH);
     const geoCtx = this.getGeoCtx(canvasW, canvasH);
 
-    // --- Gouraud scanline rasterisation into ImageData ---
-    const hiImageData = this.getHiImageData(hiW, hiH, hiCtx);
-    hiImageData.data.fill(0); // transparent black
-
-    sideTris.sort((a, b) => b.avgZ - a.avgZ);
-    const pixels = hiImageData.data;
-    for (const t of sideTris) {
-      this.drawGouraudTriangle(pixels, hiW, hiH, colour,
-        t.x0, t.y0, t.s0, t.x1, t.y1, t.s1, t.x2, t.y2, t.s2);
+    if (this.wireframeMode) {
+      hiCtx.clearRect(0, 0, hiW, hiH);
+      this.renderWireframe(body, sx, sy, sz, hiCtx);
+    } else {
+      this.renderFilled(body, sx, sy, sz, hiW, hiH, hiCtx);
     }
-    hiCtx.putImageData(hiImageData, 0, 0);
-
-    // --- Cap polygons via canvas paths (drawn on top of Gouraud layer) ---
-    capPolys.sort((a, b) => b.avgZ - a.avgZ);
-    hiCtx.save();
-    hiCtx.imageSmoothingEnabled = false; // paths are AA'd natively
-    for (const cap of capPolys) {
-      hiCtx.fillStyle = `rgb(${Math.round(cap.r)},${Math.round(cap.g)},${Math.round(cap.b)})`;
-      hiCtx.beginPath();
-      hiCtx.moveTo(cap.px[0], cap.py[0]);
-      for (let i = 1; i < cap.px.length; i++) hiCtx.lineTo(cap.px[i], cap.py[i]);
-      hiCtx.closePath();
-      hiCtx.fill();
-    }
-    hiCtx.restore();
 
     // --- Downsample 2× → 1× (bilinear — this is the AA step) ---
     geoCtx.clearRect(0, 0, canvasW, canvasH);
@@ -180,6 +107,219 @@ export class Renderer {
 
     // --- Composite geometry over star background ---
     ctx.drawImage(this.geoCanvas!, 0, 0);
+  }
+
+  /** Filled (Gouraud + texture) rendering path. All faces are scanline-rasterised. */
+  private renderFilled(
+    body: Body,
+    sx: Int32Array, sy: Int32Array, sz: Float64Array,
+    hiW: number, hiH: number,
+    hiCtx: CanvasRenderingContext2D,
+  ): void {
+    const n  = body.pointCount();
+    const fc = body.faceCount();
+
+    type Triangle = {
+      x0: number; y0: number; x1: number; y1: number; x2: number; y2: number;
+      avgZ: number; s0: number; s1: number; s2: number;
+      wx0: number; wy0: number; wz0: number;
+      wx1: number; wy1: number; wz1: number;
+      wx2: number; wy2: number; wz2: number;
+    };
+
+    // Per-face normals (unnormalised; z component < 0 → faces viewer).
+    const faceNormals: [number, number, number][] = [];
+    for (let fi = 0; fi < fc; fi++) {
+      faceNormals.push(this.computeFaceNormal(body, body.faceAt(fi)));
+    }
+
+    // Vertex → adjacent face indices for smooth shading.
+    const vertexFaces: number[][] = Array.from({ length: n }, () => []);
+    for (let fi = 0; fi < fc; fi++) {
+      for (const idx of body.faceAt(fi)) vertexFaces[idx].push(fi);
+    }
+
+    const allTris: Triangle[] = [];
+    const colour = body.getColour();
+
+    for (let fi = 0; fi < fc; fi++) {
+      const face = body.faceAt(fi);
+      const fn   = faceNormals[fi];
+      if (fn[2] >= 0) continue; // back-face cull
+
+      if (face.length > 4) {
+        // Cap face — flat shading for all triangles.
+        const fnLen = Math.sqrt(fn[0] ** 2 + fn[1] ** 2 + fn[2] ** 2);
+        let shade = Math.max(Renderer.AMBIENT, fnLen > 0 ? -fn[2] / fnLen : Renderer.AMBIENT);
+        let avgAO = 0;
+        for (const idx of face) avgAO += body.getVertexAO(idx);
+        avgAO /= face.length;
+        const aoAmbient = Renderer.AMBIENT * (1 - Renderer.AO_STRENGTH * avgAO);
+        shade = Math.max(aoAmbient, shade);
+
+        for (const [li0, li1, li2] of Renderer.earClip(face, sx, sy)) {
+          const a = face[li0], b = face[li1], c = face[li2];
+          const ta = body.getTexCoord(a), tb = body.getTexCoord(b), tc = body.getTexCoord(c);
+          allTris.push({
+            x0: sx[a], y0: sy[a], x1: sx[b], y1: sy[b], x2: sx[c], y2: sy[c],
+            avgZ: (sz[a] + sz[b] + sz[c]) / 3,
+            s0: shade, s1: shade, s2: shade,
+            wx0: ta[0], wy0: ta[1], wz0: ta[2],
+            wx1: tb[0], wy1: tb[1], wz1: tb[2],
+            wx2: tc[0], wy2: tc[1], wz2: tc[2],
+          });
+        }
+      } else {
+        // Side face — Gouraud shading, fan-triangulated.
+        const cs = face.map((vIdx, ci) =>
+          this.computeCornerShade(body, vIdx, fi, faceNormals, vertexFaces, body.getVertexAO(vIdx), ci),
+        );
+        for (let i = 1; i < face.length - 1; i++) {
+          const a = face[0], b = face[i], c = face[i + 1];
+          const ta = body.getTexCoord(a), tb = body.getTexCoord(b), tc = body.getTexCoord(c);
+          allTris.push({
+            x0: sx[a], y0: sy[a], x1: sx[b], y1: sy[b], x2: sx[c], y2: sy[c],
+            avgZ: (sz[a] + sz[b] + sz[c]) / 3,
+            s0: cs[0], s1: cs[i], s2: cs[i + 1],
+            wx0: ta[0], wy0: ta[1], wz0: ta[2],
+            wx1: tb[0], wy1: tb[1], wz1: tb[2],
+            wx2: tc[0], wy2: tc[1], wz2: tc[2],
+          });
+        }
+      }
+    }
+
+    // --- Scanline rasterisation into ImageData ---
+    const hiImageData = this.getHiImageData(hiW, hiH, hiCtx);
+    hiImageData.data.fill(0); // transparent black
+
+    allTris.sort((a, b) => b.avgZ - a.avgZ);
+    const pixels = hiImageData.data;
+    for (const t of allTris) {
+      this.drawGouraudTriangle(pixels, hiW, hiH, colour,
+        t.x0, t.y0, t.s0, t.wx0, t.wy0, t.wz0,
+        t.x1, t.y1, t.s1, t.wx1, t.wy1, t.wz1,
+        t.x2, t.y2, t.s2, t.wx2, t.wy2, t.wz2);
+    }
+    hiCtx.putImageData(hiImageData, 0, 0);
+  }
+
+  /**
+   * Draws all unique edges of {@code body} as anti-aliased lines.
+   * Front edges (avgZ <= 0) are drawn in the body colour; back edges are drawn darker,
+   * reproducing the vintage app's depth-cueing effect.
+   */
+  private renderWireframe(
+    body: Body,
+    sx: Int32Array, sy: Int32Array, sz: Float64Array,
+    hiCtx: CanvasRenderingContext2D,
+  ): void {
+    const colour = body.getColour();
+    const dark = (v: number) => Math.floor(v * 0.7);
+    const dimR = dark(dark(colour.r));
+    const dimG = dark(dark(colour.g));
+    const dimB = dark(dark(colour.b));
+    const frontStyle = `rgb(${colour.r},${colour.g},${colour.b})`;
+    const dimStyle   = `rgb(${dimR},${dimG},${dimB})`;
+
+    hiCtx.save();
+    hiCtx.lineWidth = 2;
+    const drawn = new Set<string>();
+    const fc = body.faceCount();
+    for (let fi = 0; fi < fc; fi++) {
+      const face = body.faceAt(fi);
+      for (let i = 0; i < face.length; i++) {
+        const a = face[i], b = face[(i + 1) % face.length];
+        const key = `${Math.min(a, b)},${Math.max(a, b)}`;
+        if (drawn.has(key)) continue;
+        drawn.add(key);
+        const avgZ = (sz[a] + sz[b]) / 2;
+        hiCtx.strokeStyle = avgZ > 0 ? dimStyle : frontStyle;
+        hiCtx.beginPath();
+        hiCtx.moveTo(sx[a], sy[a]);
+        hiCtx.lineTo(sx[b], sy[b]);
+        hiCtx.stroke();
+      }
+    }
+    hiCtx.restore();
+  }
+
+  /**
+   * Ear-clips a simple (possibly non-convex) polygon into triangles.
+   * Triangulation is performed in screen space. Returns face-local index triplets.
+   */
+  private static earClip(face: number[], sx: Int32Array, sy: Int32Array): [number, number, number][] {
+    const n = face.length;
+    // Signed area (×2) to determine CCW vs CW winding.
+    let area2 = 0;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      area2 += sx[face[i]] * sy[face[j]] - sx[face[j]] * sy[face[i]];
+    }
+    const isCCW = area2 > 0;
+
+    const rem: number[] = Array.from({ length: n }, (_, i) => i); // face-local indices
+    const result: [number, number, number][] = [];
+    let safety = n * n + n;
+
+    while (rem.length > 3 && safety-- > 0) {
+      const rn = rem.length;
+      let earFound = false;
+      for (let i = 0; i < rn; i++) {
+        const fi0 = rem[(i - 1 + rn) % rn];
+        const fi1 = rem[i];
+        const fi2 = rem[(i + 1) % rn];
+        const ax = sx[face[fi0]], ay = sy[face[fi0]];
+        const bx = sx[face[fi1]], by = sy[face[fi1]];
+        const cx = sx[face[fi2]], cy = sy[face[fi2]];
+
+        const cross = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+        const convex = isCCW ? cross >= 0 : cross <= 0;
+        if (!convex) continue;
+
+        let isEar = true;
+        for (let j = 0; j < rn && isEar; j++) {
+          if (j === (i - 1 + rn) % rn || j === i || j === (i + 1) % rn) continue;
+          const fj = rem[j];
+          if (Renderer.pointInTriangle2D(ax, ay, bx, by, cx, cy, sx[face[fj]], sy[face[fj]])) {
+            isEar = false;
+          }
+        }
+        if (isEar) {
+          result.push([fi0, fi1, fi2]);
+          rem.splice(i, 1);
+          earFound = true;
+          break;
+        }
+      }
+      if (!earFound) {
+        // Degenerate polygon — force-clip to avoid infinite loop.
+        result.push([rem[0], rem[1], rem[2]]);
+        rem.splice(1, 1);
+      }
+    }
+    if (rem.length === 3) {
+      result.push([rem[0], rem[1], rem[2]]);
+    }
+    return result;
+  }
+
+  private static pointInTriangle2D(
+    ax: number, ay: number, bx: number, by: number, cx: number, cy: number,
+    px: number, py: number,
+  ): boolean {
+    const d1 = Renderer.edgeSign(px, py, ax, ay, bx, by);
+    const d2 = Renderer.edgeSign(px, py, bx, by, cx, cy);
+    const d3 = Renderer.edgeSign(px, py, cx, cy, ax, ay);
+    const hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
+    const hasPos = d1 > 0 || d2 > 0 || d3 > 0;
+    return !(hasNeg && hasPos);
+  }
+
+  private static edgeSign(
+    px: number, py: number, x1: number, y1: number, x2: number, y2: number,
+  ): number {
+    return (px - x2) * (y1 - y2) - (x1 - x2) * (py - y2);
   }
 
   private getHiCtx(w: number, h: number): CanvasRenderingContext2D {
@@ -259,14 +399,23 @@ export class Renderer {
     w: number,
     h: number,
     colour: { r: number; g: number; b: number },
-    x0: number, y0: number, s0: number,
-    x1: number, y1: number, s1: number,
-    x2: number, y2: number, s2: number,
+    x0: number, y0: number, s0: number, wx0: number, wy0: number, wz0: number,
+    x1: number, y1: number, s1: number, wx1: number, wy1: number, wz1: number,
+    x2: number, y2: number, s2: number, wx2: number, wy2: number, wz2: number,
   ): void {
     // Sort vertices by y ascending.
-    if (y1 < y0) { [x0,x1]=[x1,x0]; [y0,y1]=[y1,y0]; [s0,s1]=[s1,s0]; }
-    if (y2 < y0) { [x0,x2]=[x2,x0]; [y0,y2]=[y2,y0]; [s0,s2]=[s2,s0]; }
-    if (y2 < y1) { [x1,x2]=[x2,x1]; [y1,y2]=[y2,y1]; [s1,s2]=[s2,s1]; }
+    if (y1 < y0) {
+      [x0, x1] = [x1, x0]; [y0, y1] = [y1, y0]; [s0, s1] = [s1, s0];
+      [wx0, wx1] = [wx1, wx0]; [wy0, wy1] = [wy1, wy0]; [wz0, wz1] = [wz1, wz0];
+    }
+    if (y2 < y0) {
+      [x0, x2] = [x2, x0]; [y0, y2] = [y2, y0]; [s0, s2] = [s2, s0];
+      [wx0, wx2] = [wx2, wx0]; [wy0, wy2] = [wy2, wy0]; [wz0, wz2] = [wz2, wz0];
+    }
+    if (y2 < y1) {
+      [x1, x2] = [x2, x1]; [y1, y2] = [y2, y1]; [s1, s2] = [s2, s1];
+      [wx1, wx2] = [wx2, wx1]; [wy1, wy2] = [wy2, wy1]; [wz1, wz2] = [wz2, wz1];
+    }
 
     const totalH = y2 - y0;
     if (totalH === 0) return;
@@ -275,21 +424,33 @@ export class Renderer {
 
     for (let y = Math.max(0, y0); y <= Math.min(h - 1, y2); y++) {
       const alpha = (y - y0) / totalH;
-      let xA = x0 + (x2 - x0) * alpha;
-      let sA = s0 + (s2 - s0) * alpha;
-      let xB: number, sB: number;
+      let xA  = x0  + (x2  - x0)  * alpha;
+      let sA  = s0  + (s2  - s0)  * alpha;
+      let wxA = wx0 + (wx2 - wx0) * alpha;
+      let wyA = wy0 + (wy2 - wy0) * alpha;
+      let wzA = wz0 + (wz2 - wz0) * alpha;
+      let xB: number, sB: number, wxB: number, wyB: number, wzB: number;
       if (y <= y1) {
         const segH = y1 - y0;
         const beta = segH === 0 ? 1 : (y - y0) / segH;
-        xB = x0 + (x1 - x0) * beta;
-        sB = s0 + (s1 - s0) * beta;
+        xB  = x0  + (x1  - x0)  * beta;
+        sB  = s0  + (s1  - s0)  * beta;
+        wxB = wx0 + (wx1 - wx0) * beta;
+        wyB = wy0 + (wy1 - wy0) * beta;
+        wzB = wz0 + (wz1 - wz0) * beta;
       } else {
         const segH = y2 - y1;
         const beta = segH === 0 ? 1 : (y - y1) / segH;
-        xB = x1 + (x2 - x1) * beta;
-        sB = s1 + (s2 - s1) * beta;
+        xB  = x1  + (x2  - x1)  * beta;
+        sB  = s1  + (s2  - s1)  * beta;
+        wxB = wx1 + (wx2 - wx1) * beta;
+        wyB = wy1 + (wy2 - wy1) * beta;
+        wzB = wz1 + (wz2 - wz1) * beta;
       }
-      if (xA > xB) { [xA, xB] = [xB, xA]; [sA, sB] = [sB, sA]; }
+      if (xA > xB) {
+        [xA, xB] = [xB, xA]; [sA, sB] = [sB, sA];
+        [wxA, wxB] = [wxB, wxA]; [wyA, wyB] = [wyB, wyA]; [wzA, wzB] = [wzB, wzA];
+      }
 
       const xAi = Math.round(xA);
       const xBi = Math.round(xB);
@@ -298,11 +459,15 @@ export class Renderer {
 
       for (let x = Math.max(0, xAi); x <= Math.min(w - 1, xBi); x++) {
         const t     = spanW === 0 ? 0.5 : (x - xAi) / spanW;
-        const shade = sA + (sB - sA) * t;
-        const base  = (rowBase + x) * 4;
-        pixels[base]     = Math.min(255, baseR * shade) | 0;
-        pixels[base + 1] = Math.min(255, baseG * shade) | 0;
-        pixels[base + 2] = Math.min(255, baseB * shade) | 0;
+        const shade = sA  + (sB  - sA)  * t;
+        const wx    = wxA + (wxB - wxA) * t;
+        const wy    = wyA + (wyB - wyA) * t;
+        const wz    = wzA + (wzB - wzA) * t;
+        const packed = this.texture.applyPacked(wx, wy, wz, baseR, baseG, baseB, shade);
+        const base   = (rowBase + x) * 4;
+        pixels[base]     = (packed >> 16) & 0xFF;
+        pixels[base + 1] = (packed >>  8) & 0xFF;
+        pixels[base + 2] =  packed        & 0xFF;
         pixels[base + 3] = 255;
       }
     }

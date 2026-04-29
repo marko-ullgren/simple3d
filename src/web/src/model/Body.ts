@@ -20,6 +20,8 @@ export class Body {
   private colour: Colour;
   /** Per-vertex ambient occlusion, baked once after loading. */
   private readonly vertexAO: Float32Array;
+  /** Object-space coords baked after orientation, stable across rotation. */
+  private texCoords: number[][] = [];
 
   private constructor(points: Point3D[], faces: number[][], colour: Colour, vertexAO: Float32Array) {
     this.points   = points;
@@ -36,6 +38,14 @@ export class Body {
   pointAt(i: number): Point3D  { return this.points[i]; }
   faceAt(i: number):  number[] { return this.faces[i]; }
   getVertexAO(i: number): number { return this.vertexAO[i]; }
+  getTexCoord(i: number): [number, number, number] {
+    return this.texCoords[i] as [number, number, number];
+  }
+
+  /** Snapshots current point positions as texture coordinates (call after orientation). */
+  bakeTextureCoords(): void {
+    this.texCoords = this.points.map(p => [p.x, p.y, p.z]);
+  }
 
   // --- Rotation (mirrors Java API) ---
 
@@ -138,6 +148,7 @@ export class Body {
       for (let i = 0; i < steps; i++) rotate();
     }
 
+    body.bakeTextureCoords();
     return body;
   }
 
