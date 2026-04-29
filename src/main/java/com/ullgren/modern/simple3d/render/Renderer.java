@@ -13,6 +13,8 @@ import java.util.List;
 import com.ullgren.modern.simple3d.model.Body;
 import com.ullgren.modern.simple3d.model.Point3D;
 import com.ullgren.modern.simple3d.render.effect.Effect;
+import com.ullgren.modern.simple3d.render.texture.NoTexture;
+import com.ullgren.modern.simple3d.render.texture.Texture;
 
 /**
  * Renders a {@link Body} onto a {@link Graphics} context using Gouraud shading for side faces
@@ -52,21 +54,24 @@ public class Renderer {
   private int[]  tempBuffer;
   /** Optional image-space effect applied after all geometry is rendered. */
   private Effect effect;
+  /** Surface texture applied per pixel during rasterisation. */
+  private Texture texture = new NoTexture();
 
-  /** A scan-line rendered triangle with per-corner Gouraud shading values. */
+  /** A scan-line rendered triangle with per-corner Gouraud shading and object-space tex coords. */
   private record Triangle(int x0, int y0, int x1, int y1, int x2, int y2,
-                           double avgZ, float s0, float s1, float s2) {}
-
-  private record CapPolygon(int[] px, int[] py, double avgZ, Color colour) {
-    void draw(Graphics2D g) {
-      g.setColor(colour);
-      g.fillPolygon(px, py, px.length);
-    }
-  }
+                           double avgZ, float s0, float s1, float s2,
+                           float wx0, float wy0, float wz0,
+                           float wx1, float wy1, float wz1,
+                           float wx2, float wy2, float wz2) {}
 
   /** Attaches an effect that will be applied each frame after geometry rendering. */
   public void setEffect(Effect effect) {
     this.effect = effect;
+  }
+
+  /** Attaches a surface texture applied during rasterisation. */
+  public void setTexture(Texture texture) {
+    this.texture = texture;
   }
 
   /**
@@ -118,8 +123,7 @@ public class Renderer {
       for (int idx : body.faceAt(fi)) vertexFaces[idx].add(fi);
     }
 
-    List<Triangle>   sideTris = new ArrayList<>();
-    List<CapPolygon> capPolys = new ArrayList<>();
+    List<Triangle> sideTris = new ArrayList<>();
     Color colour = body.getColour();
 
     for (int fi = 0; fi < fc; fi++) {
@@ -127,35 +131,40 @@ public class Renderer {
       double[] fn = faceNormals[fi];
       if (fn[2] >= 0) continue; // back-face cull
 
-      if (face.length > 4) {
+      boolean isLargeFace = face.length > 4;
+      float[] cs = new float[face.length];
+      if (isLargeFace) {
+        // Flat shading: every vertex of the cap gets the same shade derived from face normal.
         double fnLen = Math.sqrt(fn[0] * fn[0] + fn[1] * fn[1] + fn[2] * fn[2]);
         double shade = Math.max(AMBIENT, fnLen > 0 ? -fn[2] / fnLen : AMBIENT);
-        // Apply average AO of the cap's vertices to the flat ambient floor.
         double avgAO = 0;
         for (int idx : face) avgAO += body.getVertexAO(idx);
         avgAO /= face.length;
-        double aoAmbient = AMBIENT * (1.0 - AO_STRENGTH * avgAO);
-        shade = Math.max(aoAmbient, shade);
-        Color faceColour = shadedColour(colour, shade);
-        double avgZ = 0;
-        for (int idx : face) avgZ += sz[idx];
-        avgZ /= face.length;
-        int[] px = new int[face.length];
-        int[] py = new int[face.length];
-        for (int i = 0; i < face.length; i++) { px[i] = sx[face[i]]; py[i] = sy[face[i]]; }
-        capPolys.add(new CapPolygon(px, py, avgZ, faceColour));
+        shade = Math.max(AMBIENT * (1.0 - AO_STRENGTH * avgAO), shade);
+        Arrays.fill(cs, (float) shade);
       } else {
-        float[] cs = new float[face.length];
         for (int ci = 0; ci < face.length; ci++) {
           cs[ci] = (float) computeCornerShade(body, face[ci], fi, faceNormals, vertexFaces,
               body.getVertexAO(face[ci]));
         }
-        for (int i = 1; i < face.length - 1; i++) {
-          int a = face[0], b = face[i], c = face[i + 1];
-          double avgZ = (sz[a] + sz[b] + sz[c]) / 3.0;
-          sideTris.add(new Triangle(sx[a], sy[a], sx[b], sy[b], sx[c], sy[c], avgZ,
-              cs[0], cs[i], cs[i + 1]));
-        }
+      }
+
+      // Triangulate — ear clipping for non-convex caps, simple fan for everything else.
+      List<int[]> tris = (face.length > 4)
+          ? earClip(face, sx, sy)
+          : fanTriangulate(face);
+
+      for (int[] tri : tris) {
+        int a = face[tri[0]], b = face[tri[1]], c = face[tri[2]];
+        double avgZ = (sz[a] + sz[b] + sz[c]) / 3.0;
+        double[] ta = body.getTexCoord(a);
+        double[] tb = body.getTexCoord(b);
+        double[] tc = body.getTexCoord(c);
+        sideTris.add(new Triangle(sx[a], sy[a], sx[b], sy[b], sx[c], sy[c], avgZ,
+            cs[tri[0]], cs[tri[1]], cs[tri[2]],
+            (float) ta[0], (float) ta[1], (float) ta[2],
+            (float) tb[0], (float) tb[1], (float) tb[2],
+            (float) tc[0], (float) tc[1], (float) tc[2]));
       }
     }
 
@@ -173,17 +182,10 @@ public class Renderer {
     sideTris.sort((t1, t2) -> Double.compare(t2.avgZ(), t1.avgZ()));
     for (Triangle t : sideTris) {
       drawGouraudTriangle(hiPixels, hiW, hiH, colour,
-          t.x0(), t.y0(), t.s0(),
-          t.x1(), t.y1(), t.s1(),
-          t.x2(), t.y2(), t.s2());
+          t.x0(), t.y0(), t.s0(), t.wx0(), t.wy0(), t.wz0(),
+          t.x1(), t.y1(), t.s1(), t.wx1(), t.wy1(), t.wz1(),
+          t.x2(), t.y2(), t.s2(), t.wx2(), t.wy2(), t.wz2());
     }
-
-    // Draw cap polygons into the hi-res buffer with AA enabled.
-    capPolys.sort((a, b) -> Double.compare(b.avgZ(), a.avgZ()));
-    Graphics2D hiG = hiResImage.createGraphics();
-    hiG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-    capPolys.forEach(p -> p.draw(hiG));
-    hiG.dispose();
 
     // Downsample 2× → 1× with bilinear interpolation — this is the AA step.
     if (canvasImage == null || canvasImageW != canvasW || canvasImageH != canvasH) {
@@ -214,7 +216,95 @@ public class Renderer {
   }
 
   /**
-   * Returns the (unnormalised) face normal as [nx, ny, nz] computed from the first three
+   * Fan-triangulates a convex (or simply fan-triangulatable) polygon.
+   * Returns face-local index triplets {@code [i0, i1, i2]}.
+   */
+  private static List<int[]> fanTriangulate(int[] face) {
+    List<int[]> result = new ArrayList<>(face.length - 2);
+    for (int i = 1; i < face.length - 1; i++) {
+      result.add(new int[]{0, i, i + 1});
+    }
+    return result;
+  }
+
+  /**
+   * Ear-clips a simple (possibly non-convex) polygon into triangles.
+   * Triangulation is performed in screen space so no 3D projection is needed.
+   * Returns face-local index triplets {@code [i0, i1, i2]}.
+   */
+  private static List<int[]> earClip(int[] face, int[] sx, int[] sy) {
+    int n = face.length;
+    // Compute signed area (2×) to determine screen-space winding (CW vs CCW).
+    long area2 = 0;
+    for (int i = 0; i < n; i++) {
+      int j = (i + 1) % n;
+      area2 += (long) sx[face[i]] * sy[face[j]] - (long) sx[face[j]] * sy[face[i]];
+    }
+    boolean isCCW = area2 > 0;
+
+    List<Integer> rem = new ArrayList<>(n);
+    for (int i = 0; i < n; i++) rem.add(i); // face-local indices
+
+    List<int[]> result = new ArrayList<>(n - 2);
+    int safety = n * n + n;
+
+    while (rem.size() > 3 && safety-- > 0) {
+      int rn = rem.size();
+      boolean earFound = false;
+      for (int i = 0; i < rn; i++) {
+        int fi0 = rem.get((i - 1 + rn) % rn);
+        int fi1 = rem.get(i);
+        int fi2 = rem.get((i + 1) % rn);
+        int ax = sx[face[fi0]], ay = sy[face[fi0]];
+        int bx = sx[face[fi1]], by = sy[face[fi1]];
+        int cx = sx[face[fi2]], cy = sy[face[fi2]];
+
+        long cross = (long) (bx - ax) * (cy - ay) - (long) (by - ay) * (cx - ax);
+        boolean convex = isCCW ? (cross >= 0) : (cross <= 0);
+        if (!convex) continue;
+
+        boolean isEar = true;
+        for (int j = 0; j < rn && isEar; j++) {
+          if (j == (i - 1 + rn) % rn || j == i || j == (i + 1) % rn) continue;
+          int fj = rem.get(j);
+          int px = sx[face[fj]], py = sy[face[fj]];
+          if (pointInTriangle2D(ax, ay, bx, by, cx, cy, px, py)) isEar = false;
+        }
+        if (isEar) {
+          result.add(new int[]{fi0, fi1, fi2});
+          rem.remove(i);
+          earFound = true;
+          break;
+        }
+      }
+      if (!earFound) {
+        // Degenerate polygon — force-clip to avoid infinite loop.
+        result.add(new int[]{rem.get(0), rem.get(1), rem.get(2)});
+        rem.remove(1);
+      }
+    }
+    if (rem.size() == 3) {
+      result.add(new int[]{rem.get(0), rem.get(1), rem.get(2)});
+    }
+    return result;
+  }
+
+  private static boolean pointInTriangle2D(
+      int ax, int ay, int bx, int by, int cx, int cy, int px, int py) {
+    long d1 = edgeSign(px, py, ax, ay, bx, by);
+    long d2 = edgeSign(px, py, bx, by, cx, cy);
+    long d3 = edgeSign(px, py, cx, cy, ax, ay);
+    boolean hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+    boolean hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+    return !(hasNeg && hasPos);
+  }
+
+  private static long edgeSign(int px, int py, int x1, int y1, int x2, int y2) {
+    return (long) (px - x2) * (y1 - y2) - (long) (x1 - x2) * (py - y2);
+  }
+
+  /**
+ as [nx, ny, nz] computed from the first three
    * vertices of {@code face} using the cross product.
    */
   private double[] computeFaceNormal(Body body, int[] face) {
@@ -259,15 +349,28 @@ public class Renderer {
   /**
    * Scanline Gouraud rasteriser. Fills the triangle defined by the three screen-space vertices
    * directly into {@code pixels} (the backing array of a {@code TYPE_INT_ARGB} BufferedImage),
-   * interpolating the shade value {@code s} across each horizontal span.
+   * interpolating shade and object-space texture coordinates across each horizontal span.
    */
   private void drawGouraudTriangle(int[] pixels, int w, int h, Color colour,
-      int x0, int y0, float s0,
-      int x1, int y1, float s1,
-      int x2, int y2, float s2) {
-    if (y1 < y0) { int t=x0; x0=x1; x1=t; t=y0; y0=y1; y1=t; float ts=s0; s0=s1; s1=ts; }
-    if (y2 < y0) { int t=x0; x0=x2; x2=t; t=y0; y0=y2; y2=t; float ts=s0; s0=s2; s2=ts; }
-    if (y2 < y1) { int t=x1; x1=x2; x2=t; t=y1; y1=y2; y2=t; float ts=s1; s1=s2; s2=ts; }
+      int x0, int y0, float s0, float wx0, float wy0, float wz0,
+      int x1, int y1, float s1, float wx1, float wy1, float wz1,
+      int x2, int y2, float s2, float wx2, float wy2, float wz2) {
+    // Sort vertices by Y (ascending).
+    if (y1 < y0) {
+      int ti=x0; x0=x1; x1=ti; ti=y0; y0=y1; y1=ti;
+      float ts=s0; s0=s1; s1=ts;
+      ts=wx0; wx0=wx1; wx1=ts; ts=wy0; wy0=wy1; wy1=ts; ts=wz0; wz0=wz1; wz1=ts;
+    }
+    if (y2 < y0) {
+      int ti=x0; x0=x2; x2=ti; ti=y0; y0=y2; y2=ti;
+      float ts=s0; s0=s2; s2=ts;
+      ts=wx0; wx0=wx2; wx2=ts; ts=wy0; wy0=wy2; wy2=ts; ts=wz0; wz0=wz2; wz2=ts;
+    }
+    if (y2 < y1) {
+      int ti=x1; x1=x2; x2=ti; ti=y1; y1=y2; y2=ti;
+      float ts=s1; s1=s2; s2=ts;
+      ts=wx1; wx1=wx2; wx2=ts; ts=wy1; wy1=wy2; wy2=ts; ts=wz1; wz1=wz2; wz2=ts;
+    }
 
     int totalH = y2 - y0;
     if (totalH == 0) return;
@@ -276,40 +379,48 @@ public class Renderer {
 
     for (int y = Math.max(0, y0); y <= Math.min(h - 1, y2); y++) {
       float alpha = (float) (y - y0) / totalH;
-      int   xA = x0 + (int) ((x2 - x0) * alpha);
-      float sA = s0 + (s2 - s0) * alpha;
+      int   xA  = x0  + (int) ((x2  - x0)  * alpha);
+      float sA  = s0  + (s2  - s0)  * alpha;
+      float wxA = wx0 + (wx2 - wx0) * alpha;
+      float wyA = wy0 + (wy2 - wy0) * alpha;
+      float wzA = wz0 + (wz2 - wz0) * alpha;
       int   xB;
-      float sB;
+      float sB, wxB, wyB, wzB;
       if (y <= y1) {
         int segH = y1 - y0;
         float beta = segH == 0 ? 1f : (float) (y - y0) / segH;
-        xB = x0 + (int) ((x1 - x0) * beta);
-        sB = s0 + (s1 - s0) * beta;
+        xB  = x0  + (int) ((x1  - x0)  * beta);
+        sB  = s0  + (s1  - s0)  * beta;
+        wxB = wx0 + (wx1 - wx0) * beta;
+        wyB = wy0 + (wy1 - wy0) * beta;
+        wzB = wz0 + (wz1 - wz0) * beta;
       } else {
         int segH = y2 - y1;
         float beta = segH == 0 ? 1f : (float) (y - y1) / segH;
-        xB = x1 + (int) ((x2 - x1) * beta);
-        sB = s1 + (s2 - s1) * beta;
+        xB  = x1  + (int) ((x2  - x1)  * beta);
+        sB  = s1  + (s2  - s1)  * beta;
+        wxB = wx1 + (wx2 - wx1) * beta;
+        wyB = wy1 + (wy2 - wy1) * beta;
+        wzB = wz1 + (wz2 - wz1) * beta;
       }
-      if (xA > xB) { int t=xA; xA=xB; xB=t; float ts=sA; sA=sB; sB=ts; }
+      if (xA > xB) {
+        int ti=xA; xA=xB; xB=ti;
+        float ts=sA; sA=sB; sB=ts;
+        ts=wxA; wxA=wxB; wxB=ts;
+        ts=wyA; wyA=wyB; wyB=ts;
+        ts=wzA; wzA=wzB; wzB=ts;
+      }
 
       int spanW = xB - xA;
       int rowBase = y * w;
       for (int x = Math.max(0, xA); x <= Math.min(w - 1, xB); x++) {
         float t     = spanW == 0 ? 0.5f : (float) (x - xA) / spanW;
-        float shade = sA + (sB - sA) * t;
-        int r = Math.min(255, (int) (baseR * shade));
-        int gv = Math.min(255, (int) (baseG * shade));
-        int b = Math.min(255, (int) (baseB * shade));
-        pixels[rowBase + x] = 0xFF000000 | (r << 16) | (gv << 8) | b;
+        float shade = sA  + (sB  - sA)  * t;
+        float wx    = wxA + (wxB - wxA) * t;
+        float wy    = wyA + (wyB - wyA) * t;
+        float wz    = wzA + (wzB - wzA) * t;
+        pixels[rowBase + x] = texture.applyPacked(wx, wy, wz, baseR, baseG, baseB, shade);
       }
     }
-  }
-
-  private Color shadedColour(Color colour, double shade) {
-    return new Color(
-        Math.min(255, (int) (colour.getRed()   * shade)),
-        Math.min(255, (int) (colour.getGreen() * shade)),
-        Math.min(255, (int) (colour.getBlue()  * shade)));
   }
 }
