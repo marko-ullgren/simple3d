@@ -16,6 +16,14 @@ public final class StoneTexture implements Texture {
   private static final double[] FREQ = { 0.013, 0.031, 0.077 };
   private static final double[] AMP  = { 0.55,  0.30,  0.15  };
 
+  /**
+   * Minimum effective brightness for stone (matte material with significant ambient
+   * reflectance). Lifts the dark floor so stone stays visibly grey even in shadow,
+   * preventing near-black pixels from being mistaken for transparency over a star field.
+   * Maps shade ∈ [0, 1] → effective ∈ [STONE_AMBIENT, 1].
+   */
+  private static final float STONE_AMBIENT = 0.35f;
+
   // Pre-computed permutation table for value noise (256-entry, doubled to avoid wrapping).
   private static final int[] PERM = buildPerm();
 
@@ -39,10 +47,14 @@ public final class StoneTexture implements Texture {
     int g = (int) (stoneG * 0.85 + baseG * 0.15);
     int b = (int) (stoneB * 0.85 + baseB * 0.15);
 
-    // Apply Gouraud lighting.
-    r = Math.min(255, (int) (r * shade));
-    g = Math.min(255, (int) (g * shade));
-    b = Math.min(255, (int) (b * shade));
+    // Stone is a rough matte material: lift the shading floor so dark faces remain
+    // visibly grey (not near-black) and stars cannot appear to shine through.
+    float stoneShade = STONE_AMBIENT + shade * (1.0f - STONE_AMBIENT);
+
+    // Apply lifted stone shading.
+    r = Math.min(255, (int) (r * stoneShade));
+    g = Math.min(255, (int) (g * stoneShade));
+    b = Math.min(255, (int) (b * stoneShade));
 
     return 0xFF000000 | (r << 16) | (g << 8) | b;
   }
