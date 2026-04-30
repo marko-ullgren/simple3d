@@ -35,6 +35,15 @@
         font-size: 13px;
         cursor: pointer;
       }
+      nav input[type="color"] {
+        width: 28px;
+        height: 22px;
+        padding: 1px 2px;
+        border: 1px solid #555;
+        border-radius: 3px;
+        background: #2d2d2d;
+        cursor: pointer;
+      }
       .hint {
         margin-left: auto;
         font-size: 11px;
@@ -51,11 +60,7 @@
       </label>
       <label>
         Colour:
-        <select id="colour-select">
-          <option value="blue">Blue</option>
-          <option value="red">Red</option>
-          <option value="green">Green</option>
-        </select>
+        <input type="color" id="colour-input" value="#0000ff" title="Pick body colour">
       </label>
       <label>
         Effect:
