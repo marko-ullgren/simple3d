@@ -34,6 +34,14 @@ export class StoneTexture implements Texture {
     return StoneTexture.stoneNoise(wx, wy, wz);
   }
 
+  /**
+   * Minimum effective brightness for stone (matte material with significant ambient
+   * reflectance). Lifts the dark floor so stone stays visibly grey even in shadow,
+   * preventing near-black pixels from being mistaken for transparency over a star field.
+   * Maps shade ∈ [0, 1] → effective ∈ [STONE_AMBIENT, 1].
+   */
+  private static readonly STONE_AMBIENT = 0.35;
+
   applyPacked(
     texValue: number,
     baseR: number, baseG: number, baseB: number,
@@ -50,9 +58,14 @@ export class StoneTexture implements Texture {
     const g = (stoneG * 0.85 + baseG * 0.15) | 0;
     const b = (stoneB * 0.85 + baseB * 0.15) | 0;
 
-    return (Math.min(255, (r * shade) | 0) << 16)
-         | (Math.min(255, (g * shade) | 0) << 8)
-         |  Math.min(255, (b * shade) | 0);
+    // Stone is a rough matte material: lift the shading floor so dark faces remain
+    // visibly grey (not near-black) and stars cannot appear to shine through.
+    const sa = StoneTexture.STONE_AMBIENT;
+    const stoneShade = sa + shade * (1.0 - sa); // shade=0 → sa, shade=1 → 1.0
+
+    return (Math.min(255, (r * stoneShade) | 0) << 16)
+         | (Math.min(255, (g * stoneShade) | 0) << 8)
+         |  Math.min(255, (b * stoneShade) | 0);
   }
 
   private static stoneNoise(x: number, y: number, z: number): number {
