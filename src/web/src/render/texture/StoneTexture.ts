@@ -6,6 +6,10 @@ import type { Texture } from './Texture.js';
  * The noise is sampled at object-space coordinates so the pattern stays fixed
  * to the surface as the body rotates. Each sample drives a greyscale stone base
  * (cool grey) with subtle tonal shifts, blended at 85% stone / 15% body colour.
+ *
+ * Performance: noise is evaluated once per vertex via {@link prepare} and the
+ * result is interpolated linearly across each triangle by the Renderer —
+ * identical to Gouraud shading. No noise computation occurs per pixel.
  */
 export class StoneTexture implements Texture {
 
@@ -25,12 +29,17 @@ export class StoneTexture implements Texture {
     return perm;
   })();
 
+  /** Pre-samples noise at an object-space vertex position. */
+  prepare(wx: number, wy: number, wz: number): number {
+    return StoneTexture.stoneNoise(wx, wy, wz);
+  }
+
   applyPacked(
-    wx: number, wy: number, wz: number,
+    texValue: number,
     baseR: number, baseG: number, baseB: number,
     shade: number,
   ): number {
-    const n = StoneTexture.stoneNoise(wx, wy, wz);
+    const n = texValue;
 
     const stoneR = 98  + (n * 58) | 0;
     const stoneG = 95  + (n * 52) | 0;

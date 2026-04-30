@@ -122,9 +122,7 @@ export class Renderer {
     type Triangle = {
       x0: number; y0: number; x1: number; y1: number; x2: number; y2: number;
       avgZ: number; s0: number; s1: number; s2: number;
-      wx0: number; wy0: number; wz0: number;
-      wx1: number; wy1: number; wz1: number;
-      wx2: number; wy2: number; wz2: number;
+      tv0: number; tv1: number; tv2: number;
     };
 
     // Per-face normals (unnormalised; z component < 0 → faces viewer).
@@ -137,6 +135,13 @@ export class Renderer {
     const vertexFaces: number[][] = Array.from({ length: n }, () => []);
     for (let fi = 0; fi < fc; fi++) {
       for (const idx of body.faceAt(fi)) vertexFaces[idx].push(fi);
+    }
+
+    // Pre-sample texture once per vertex (noise, UV, etc.) — O(vertices), not O(pixels).
+    const vertexTv = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      const tc = body.getTexCoord(i);
+      vertexTv[i] = this.texture.prepare(tc[0], tc[1], tc[2]);
     }
 
     const allTris: Triangle[] = [];
@@ -159,14 +164,11 @@ export class Renderer {
 
         for (const [li0, li1, li2] of Renderer.earClip(face, sx, sy)) {
           const a = face[li0], b = face[li1], c = face[li2];
-          const ta = body.getTexCoord(a), tb = body.getTexCoord(b), tc = body.getTexCoord(c);
           allTris.push({
             x0: sx[a], y0: sy[a], x1: sx[b], y1: sy[b], x2: sx[c], y2: sy[c],
             avgZ: (sz[a] + sz[b] + sz[c]) / 3,
             s0: shade, s1: shade, s2: shade,
-            wx0: ta[0], wy0: ta[1], wz0: ta[2],
-            wx1: tb[0], wy1: tb[1], wz1: tb[2],
-            wx2: tc[0], wy2: tc[1], wz2: tc[2],
+            tv0: vertexTv[a], tv1: vertexTv[b], tv2: vertexTv[c],
           });
         }
       } else {
@@ -176,14 +178,11 @@ export class Renderer {
         );
         for (let i = 1; i < face.length - 1; i++) {
           const a = face[0], b = face[i], c = face[i + 1];
-          const ta = body.getTexCoord(a), tb = body.getTexCoord(b), tc = body.getTexCoord(c);
           allTris.push({
             x0: sx[a], y0: sy[a], x1: sx[b], y1: sy[b], x2: sx[c], y2: sy[c],
             avgZ: (sz[a] + sz[b] + sz[c]) / 3,
             s0: cs[0], s1: cs[i], s2: cs[i + 1],
-            wx0: ta[0], wy0: ta[1], wz0: ta[2],
-            wx1: tb[0], wy1: tb[1], wz1: tb[2],
-            wx2: tc[0], wy2: tc[1], wz2: tc[2],
+            tv0: vertexTv[a], tv1: vertexTv[b], tv2: vertexTv[c],
           });
         }
       }
@@ -197,9 +196,9 @@ export class Renderer {
     const pixels = hiImageData.data;
     for (const t of allTris) {
       this.drawGouraudTriangle(pixels, hiW, hiH, colour,
-        t.x0, t.y0, t.s0, t.wx0, t.wy0, t.wz0,
-        t.x1, t.y1, t.s1, t.wx1, t.wy1, t.wz1,
-        t.x2, t.y2, t.s2, t.wx2, t.wy2, t.wz2);
+        t.x0, t.y0, t.s0, t.tv0,
+        t.x1, t.y1, t.s1, t.tv1,
+        t.x2, t.y2, t.s2, t.tv2);
     }
     hiCtx.putImageData(hiImageData, 0, 0);
   }
@@ -399,22 +398,19 @@ export class Renderer {
     w: number,
     h: number,
     colour: { r: number; g: number; b: number },
-    x0: number, y0: number, s0: number, wx0: number, wy0: number, wz0: number,
-    x1: number, y1: number, s1: number, wx1: number, wy1: number, wz1: number,
-    x2: number, y2: number, s2: number, wx2: number, wy2: number, wz2: number,
+    x0: number, y0: number, s0: number, tv0: number,
+    x1: number, y1: number, s1: number, tv1: number,
+    x2: number, y2: number, s2: number, tv2: number,
   ): void {
     // Sort vertices by y ascending.
     if (y1 < y0) {
-      [x0, x1] = [x1, x0]; [y0, y1] = [y1, y0]; [s0, s1] = [s1, s0];
-      [wx0, wx1] = [wx1, wx0]; [wy0, wy1] = [wy1, wy0]; [wz0, wz1] = [wz1, wz0];
+      [x0, x1] = [x1, x0]; [y0, y1] = [y1, y0]; [s0, s1] = [s1, s0]; [tv0, tv1] = [tv1, tv0];
     }
     if (y2 < y0) {
-      [x0, x2] = [x2, x0]; [y0, y2] = [y2, y0]; [s0, s2] = [s2, s0];
-      [wx0, wx2] = [wx2, wx0]; [wy0, wy2] = [wy2, wy0]; [wz0, wz2] = [wz2, wz0];
+      [x0, x2] = [x2, x0]; [y0, y2] = [y2, y0]; [s0, s2] = [s2, s0]; [tv0, tv2] = [tv2, tv0];
     }
     if (y2 < y1) {
-      [x1, x2] = [x2, x1]; [y1, y2] = [y2, y1]; [s1, s2] = [s2, s1];
-      [wx1, wx2] = [wx2, wx1]; [wy1, wy2] = [wy2, wy1]; [wz1, wz2] = [wz2, wz1];
+      [x1, x2] = [x2, x1]; [y1, y2] = [y2, y1]; [s1, s2] = [s2, s1]; [tv1, tv2] = [tv2, tv1];
     }
 
     const totalH = y2 - y0;
@@ -426,30 +422,23 @@ export class Renderer {
       const alpha = (y - y0) / totalH;
       let xA  = x0  + (x2  - x0)  * alpha;
       let sA  = s0  + (s2  - s0)  * alpha;
-      let wxA = wx0 + (wx2 - wx0) * alpha;
-      let wyA = wy0 + (wy2 - wy0) * alpha;
-      let wzA = wz0 + (wz2 - wz0) * alpha;
-      let xB: number, sB: number, wxB: number, wyB: number, wzB: number;
+      let tvA = tv0 + (tv2 - tv0) * alpha;
+      let xB: number, sB: number, tvB: number;
       if (y <= y1) {
         const segH = y1 - y0;
         const beta = segH === 0 ? 1 : (y - y0) / segH;
         xB  = x0  + (x1  - x0)  * beta;
         sB  = s0  + (s1  - s0)  * beta;
-        wxB = wx0 + (wx1 - wx0) * beta;
-        wyB = wy0 + (wy1 - wy0) * beta;
-        wzB = wz0 + (wz1 - wz0) * beta;
+        tvB = tv0 + (tv1 - tv0) * beta;
       } else {
         const segH = y2 - y1;
         const beta = segH === 0 ? 1 : (y - y1) / segH;
         xB  = x1  + (x2  - x1)  * beta;
         sB  = s1  + (s2  - s1)  * beta;
-        wxB = wx1 + (wx2 - wx1) * beta;
-        wyB = wy1 + (wy2 - wy1) * beta;
-        wzB = wz1 + (wz2 - wz1) * beta;
+        tvB = tv1 + (tv2 - tv1) * beta;
       }
       if (xA > xB) {
-        [xA, xB] = [xB, xA]; [sA, sB] = [sB, sA];
-        [wxA, wxB] = [wxB, wxA]; [wyA, wyB] = [wyB, wyA]; [wzA, wzB] = [wzB, wzA];
+        [xA, xB] = [xB, xA]; [sA, sB] = [sB, sA]; [tvA, tvB] = [tvB, tvA];
       }
 
       const xAi = Math.round(xA);
@@ -460,10 +449,8 @@ export class Renderer {
       for (let x = Math.max(0, xAi); x <= Math.min(w - 1, xBi); x++) {
         const t     = spanW === 0 ? 0.5 : (x - xAi) / spanW;
         const shade = sA  + (sB  - sA)  * t;
-        const wx    = wxA + (wxB - wxA) * t;
-        const wy    = wyA + (wyB - wyA) * t;
-        const wz    = wzA + (wzB - wzA) * t;
-        const packed = this.texture.applyPacked(wx, wy, wz, baseR, baseG, baseB, shade);
+        const tv    = tvA + (tvB - tvA) * t;
+        const packed = this.texture.applyPacked(tv, baseR, baseG, baseB, shade);
         const base   = (rowBase + x) * 4;
         pixels[base]     = (packed >> 16) & 0xFF;
         pixels[base + 1] = (packed >>  8) & 0xFF;
