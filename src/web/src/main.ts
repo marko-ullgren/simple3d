@@ -18,7 +18,7 @@ const REF_SIZE = 350;
 
 const canvas      = document.getElementById('canvas') as HTMLCanvasElement;
 const bodySelect  = document.getElementById('body-select') as HTMLSelectElement;
-const colourSelect = document.getElementById('colour-select') as HTMLSelectElement;
+const colourInput  = document.getElementById('colour-input') as HTMLInputElement;
 const effectSelect = document.getElementById('effect-select') as HTMLSelectElement;
 const textureSelect = document.getElementById('texture-select') as HTMLSelectElement;
 const ctx         = canvas.getContext('2d')!;
@@ -58,6 +58,22 @@ function render(): void {
   }
 }
 
+// --- Colour helpers ---
+
+function hexToColour(hex: string): Colour {
+  return {
+    r: parseInt(hex.slice(1, 3), 16),
+    g: parseInt(hex.slice(3, 5), 16),
+    b: parseInt(hex.slice(5, 7), 16),
+  };
+}
+
+function colourToHex(c: Colour): string {
+  return '#' + [c.r, c.g, c.b]
+    .map(v => v.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 // --- Shape loading ---
 
 function shapeUrl(name: string): string {
@@ -87,6 +103,7 @@ function populateBodySelect(names: string[]): void {
 async function loadShape(name: string, colour?: Colour): Promise<void> {
   const col = colour ?? body?.getColour() ?? COLOURS.blue;
   body = await Body.load(shapeUrl(name), col);
+  colourInput.value = colourToHex(col);
   if (animCtrl) {
     animCtrl.setBody(body);
   }
@@ -164,9 +181,9 @@ bodySelect.addEventListener('change', () => {
   loadShape(bodySelect.value).catch(console.error);
 });
 
-colourSelect.addEventListener('change', () => {
+colourInput.addEventListener('input', () => {
   if (body) {
-    body.setColour(COLOURS[colourSelect.value] ?? COLOURS.blue);
+    body.setColour(hexToColour(colourInput.value));
     repaint();
   }
 });

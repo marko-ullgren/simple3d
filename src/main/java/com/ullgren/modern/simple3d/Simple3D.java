@@ -14,6 +14,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import javax.swing.ButtonGroup;
+import javax.swing.JColorChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -150,10 +151,15 @@ public class Simple3D {
 
   private JMenu buildColourMenu() {
     JMenu menu = new JMenu("Colour");
-    ButtonGroup group = new ButtonGroup();
-    menu.add(radioItem("Blue",  true,  group, () -> { body.setColour(Color.blue);  canvas.repaint(); }));
-    menu.add(radioItem("Red",   false, group, () -> { body.setColour(Color.red);   canvas.repaint(); }));
-    menu.add(radioItem("Green", false, group, () -> { body.setColour(Color.green); canvas.repaint(); }));
+    JMenuItem pickItem = new JMenuItem("Pick Colour\u2026");
+    pickItem.addActionListener(e -> {
+      Color chosen = JColorChooser.showDialog(frame, "Pick Colour", body.getColour());
+      if (chosen != null) {
+        body.setColour(chosen);
+        canvas.repaint();
+      }
+    });
+    menu.add(pickItem);
     return menu;
   }
 
