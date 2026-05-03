@@ -10,6 +10,7 @@ import { ShockwaveEffect } from './render/effect/ShockwaveEffect.js';
 import { AnimationController } from './control/AnimationController.js';
 import { NoTexture } from './render/texture/NoTexture.js';
 import { StoneTexture } from './render/texture/StoneTexture.js';
+import { MetalTexture } from './render/texture/MetalTexture.js';
 
 // Sensitivity: minimum pixel distance from centre for a click to affect rotation.
 const SENSITIVITY = 50;
@@ -162,6 +163,10 @@ textureSelect.addEventListener('change', () => {
     case 'stone':
       renderer.setWireframeMode(false);
       renderer.setTexture(new StoneTexture());
+      break;
+    case 'metal':
+      renderer.setWireframeMode(false);
+      renderer.setTexture(new MetalTexture());
       break;
     case 'wireframe':
       renderer.setWireframeMode(true);

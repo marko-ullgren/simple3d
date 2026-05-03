@@ -34,6 +34,7 @@ import com.ullgren.modern.simple3d.render.effect.ShockwaveEffect;
 import com.ullgren.modern.simple3d.render.StarField;
 import com.ullgren.modern.simple3d.render.effect.VortexEffect;
 import com.ullgren.modern.simple3d.render.texture.NoTexture;
+import com.ullgren.modern.simple3d.render.texture.MetalTexture;
 import com.ullgren.modern.simple3d.render.texture.StoneTexture;
 
 /**
@@ -180,6 +181,7 @@ public class Simple3D {
     ButtonGroup group = new ButtonGroup();
     menu.add(radioItem("None",      true,  group, () -> { renderer.setWireframeMode(false); renderer.setTexture(new NoTexture());    canvas.repaint(); }));
     menu.add(radioItem("Stone",     false, group, () -> { renderer.setWireframeMode(false); renderer.setTexture(new StoneTexture()); canvas.repaint(); }));
+    menu.add(radioItem("Metal",     false, group, () -> { renderer.setWireframeMode(false); renderer.setTexture(new MetalTexture()); canvas.repaint(); }));
     menu.addSeparator();
     menu.add(radioItem("Wireframe", false, group, () -> { renderer.setWireframeMode(true);  canvas.repaint(); }));
     return menu;
