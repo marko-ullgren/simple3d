@@ -4,6 +4,7 @@ import { Renderer } from './Renderer.js';
 import { Body, COLOURS } from '../model/Body.js';
 import type { Effect } from './effect/Effect.js';
 import { StoneTexture } from './texture/StoneTexture.js';
+import { MetalTexture } from './texture/MetalTexture.js';
 import { NoTexture } from './texture/NoTexture.js';
 
 const CUBE_BODY = `
@@ -181,6 +182,13 @@ describe('Renderer', () => {
     expect(() => renderer.render(makeBody(), ctx, 50, 50, 1, 100, 100)).not.toThrow();
   });
 
+  it('setTexture(MetalTexture) renders without throwing', () => {
+    const renderer = new Renderer();
+    renderer.setTexture(new MetalTexture());
+    const ctx = makeMockCtx();
+    expect(() => renderer.render(makeBody(), ctx, 50, 50, 1, 100, 100)).not.toThrow();
+  });
+
   it('wireframe mode renders without throwing', () => {
     const renderer = new Renderer();
     renderer.setWireframeMode(true);
@@ -226,6 +234,13 @@ describe('Renderer', () => {
   it('cap body (> 4 vertex faces) renders without throwing with stone texture', () => {
     const renderer = new Renderer();
     renderer.setTexture(new StoneTexture());
+    const ctx = makeMockCtx();
+    expect(() => renderer.render(makeCapBody(), ctx, 50, 50, 1, 100, 100)).not.toThrow();
+  });
+
+  it('cap body (> 4 vertex faces) renders without throwing with metal texture', () => {
+    const renderer = new Renderer();
+    renderer.setTexture(new MetalTexture());
     const ctx = makeMockCtx();
     expect(() => renderer.render(makeCapBody(), ctx, 50, 50, 1, 100, 100)).not.toThrow();
   });
