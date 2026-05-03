@@ -23,7 +23,11 @@ public final class MetalTexture implements Texture {
   /** Exponent for narrow white highlight sheen. */
   private static final int    WHITE_POWER     = 14;
   /** Intensity of white highlight. */
-  private static final double WHITE_STRENGTH  = 0.15;
+  private static final double WHITE_STRENGTH  = 0.20;
+  /** Exponent for wide soft glare bloom around the specular peak. */
+  private static final int    GLARE_POWER     = 4;
+  /** Intensity of soft glare bloom. */
+  private static final double GLARE_STRENGTH  = 0.18;
   /** Surface grain noise range: [GRAIN_BASE, GRAIN_BASE + GRAIN_RANGE]. */
   private static final double GRAIN_BASE      = 0.94;
   private static final double GRAIN_RANGE     = 0.06;
@@ -49,14 +53,18 @@ public final class MetalTexture implements Texture {
     // Narrow white sheen at the brightest highlights for "shine".
     double whiteSpec = Math.pow(shade, WHITE_POWER) * WHITE_STRENGTH;
 
+    // Wide soft glare bloom — creates the characteristic polished-metal glow.
+    double glare = Math.pow(shade, GLARE_POWER) * GLARE_STRENGTH;
+
     // Surface grain.
     double grain = GRAIN_BASE + noise * GRAIN_RANGE;
 
     double effective = (metalDiffuse + metalSpec) * grain;
+    double whiteTotal = whiteSpec + glare;
 
-    int r = Math.min(255, (int) (baseR * effective + 255 * whiteSpec));
-    int g = Math.min(255, (int) (baseG * effective + 255 * whiteSpec));
-    int b = Math.min(255, (int) (baseB * effective + 255 * whiteSpec));
+    int r = Math.min(255, (int) (baseR * effective + 255 * whiteTotal));
+    int g = Math.min(255, (int) (baseG * effective + 255 * whiteTotal));
+    int b = Math.min(255, (int) (baseB * effective + 255 * whiteTotal));
 
     return 0xFF000000 | (r << 16) | (g << 8) | b;
   }

@@ -23,7 +23,11 @@ export class MetalTexture implements Texture {
   /** Exponent for narrow white highlight sheen. */
   private static readonly WHITE_POWER     = 14;
   /** Intensity of white highlight. */
-  private static readonly WHITE_STRENGTH  = 0.15;
+  private static readonly WHITE_STRENGTH  = 0.20;
+  /** Exponent for wide soft glare bloom around the specular peak. */
+  private static readonly GLARE_POWER     = 4;
+  /** Intensity of soft glare bloom. */
+  private static readonly GLARE_STRENGTH  = 0.18;
   /** Surface grain noise range: [GRAIN_BASE, GRAIN_BASE + GRAIN_RANGE]. */
   private static readonly GRAIN_BASE      = 0.94;
   private static readonly GRAIN_RANGE     = 0.06;
@@ -63,14 +67,18 @@ export class MetalTexture implements Texture {
     // Narrow white sheen at the brightest highlights for "shine".
     const whiteSpec = Math.pow(shade, MetalTexture.WHITE_POWER) * MetalTexture.WHITE_STRENGTH;
 
+    // Wide soft glare bloom — creates the characteristic polished-metal glow.
+    const glare = Math.pow(shade, MetalTexture.GLARE_POWER) * MetalTexture.GLARE_STRENGTH;
+
     // Subtle surface grain from interpolated noise.
     const grain = MetalTexture.GRAIN_BASE + texValue * MetalTexture.GRAIN_RANGE;
 
     const effective = (metalDiffuse + metalSpec) * grain;
+    const whiteTotal = whiteSpec + glare;
 
-    const r = Math.min(255, (baseR * effective + 255 * whiteSpec) | 0);
-    const g = Math.min(255, (baseG * effective + 255 * whiteSpec) | 0);
-    const b = Math.min(255, (baseB * effective + 255 * whiteSpec) | 0);
+    const r = Math.min(255, (baseR * effective + 255 * whiteTotal) | 0);
+    const g = Math.min(255, (baseG * effective + 255 * whiteTotal) | 0);
+    const b = Math.min(255, (baseB * effective + 255 * whiteTotal) | 0);
 
     return (r << 16) | (g << 8) | b;
   }
