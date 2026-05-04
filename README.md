@@ -34,7 +34,9 @@ A complete rewrite targeting Java 21, keeping the same geometry and interaction 
 - **Surface textures** — selectable via the Texture menu:
   - *None* (default) — smooth Gouraud shading, no texture
   - *Stone* — procedural three-octave 3D value noise sampled at object-space coordinates; the pattern is baked at load time and stays fixed to the surface during rotation
+  - *Metal* — polished metallic surface with body-color-tinted specular highlights, a narrow white sheen, a wide soft glare bloom, and subtle single-octave surface grain noise
   - *Wireframe* — draws only edges, dark for far edges and bright for near ones, reproducing the look of the 1998 original
+- **Free colour picker** — choose any colour via `JColorChooser` (replaces the fixed Blue/Red/Green presets)
 - **Image-space effects** triggered on mouse click — four selectable via the Effect menu:
   - *Elastic Dent* (default) — spring-damper compression that bounces back
   - *Ripple* — concentric sine-wave rings that radiate outward and fade
@@ -69,6 +71,7 @@ A faithful TypeScript port of the modern Java app that runs entirely in the brow
 | `src/render/texture/Texture.ts` | `Texture` interface — `applyPacked(wx, wy, wz, baseR, baseG, baseB, shade)` returns packed RGB |
 | `src/render/texture/NoTexture.ts` | Null-object texture: Gouraud shading only, no surface pattern |
 | `src/render/texture/StoneTexture.ts` | Procedural three-octave 3D value noise sampled at object-space coords baked at load time |
+| `src/render/texture/MetalTexture.ts` | Polished metallic surface — body-color specular, white sheen, glare bloom, single-octave grain |
 | `src/control/AnimationController.ts` | Angular momentum + friction decay |
 | `src/main.ts` | Wires everything; `requestAnimationFrame` render loop; `<select>` menus |
 
@@ -87,7 +90,7 @@ npm run dev    # → http://localhost:5173
 
 ### Tests
 
-110 unit tests cover the model, control, effect, and rendering layers:
+112 unit tests cover the model, control, effect, and rendering layers:
 
 ```bash
 cd src/web
@@ -97,7 +100,7 @@ npm test        # run once
 npm run test:watch  # re-run on file changes
 ```
 
-Tests are co-located with source files (`*.test.ts`). Effect tests (`render/effect/*.test.ts`) verify pixel-level displacement logic directly against `Uint8ClampedArray` buffers — no browser or canvas required. Renderer tests cover the filled, stone-texture, and wireframe rendering paths including ear-clip triangulation of non-convex cap faces.
+Tests are co-located with source files (`*.test.ts`). Effect tests (`render/effect/*.test.ts`) verify pixel-level displacement logic directly against `Uint8ClampedArray` buffers — no browser or canvas required. Renderer tests cover the filled, stone-texture, metal-texture, and wireframe rendering paths including ear-clip triangulation of non-convex cap faces.
 
 ### Deployment
 
@@ -141,6 +144,6 @@ mvn exec:java@vintage
 - **Click** in a quadrant to spin the object in that direction; click again to add more momentum or in the opposite quadrant to slow it down
 - **Scroll wheel** to zoom in and out (zoom range: 0.1× – 10×)
 - **Body menu** — switch between seven shapes: MU logo (default), Cube, Tetrahedron, Octahedron, Icosahedron, Torus, and Pyramid
-- **Colour menu** — change the object colour
+- **Colour picker** — choose any object colour (free colour picker on web, `JColorChooser` dialog in Java)
 - **Effect menu** — choose the click effect: Elastic Dent (default), Ripple, Vortex, Shockwave, or No Effect
-- **Texture menu** — choose the surface appearance: None (default), Stone, or Wireframe
+- **Texture menu** — choose the surface appearance: None (default), Stone, Metal, or Wireframe
