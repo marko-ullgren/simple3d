@@ -1,74 +1,107 @@
 # Copilot Instructions for simple3d
 
-## Build & Run Commands
+> **⚠️ The vintage Java package (`com.ullgren.vintage.simple3d`) must not be touched.**
+> It is a preserved 1998 artifact. Do not modify, modernise, refactor, or rename anything in it — even to fix warnings or deprecations.
+
+## Build, Test & Run
+
+### Java (root directory, Maven, Java 21)
 
 ```bash
 mvn compile                # compile both packages
-mvn exec:java              # run vintage version
-mvn exec:exec@modern       # run modern version (spawns its own JVM — required for macOS close button)
+mvn test                   # run all Java tests (JUnit 5)
+mvn test -Dtest=Point3DTest            # run a single test class
+mvn test -Dtest=Point3DTest#testRotateXZ  # run a single test method
+mvn exec:java@vintage      # run vintage wireframe version
+mvn exec:exec@modern       # run modern solid-rendering version (spawns own JVM)
 mvn package                # build executable JAR (vintage main)
-mvn test                   # run tests (none currently exist)
 ```
 
-There are no tests in the codebase. The `junit` dependency is declared but no test sources exist under `src/test/`.
+### Web (src/web/, Node 22, Vite + Vitest)
+
+```bash
+cd src/web
+nvm use                    # picks Node 22 from .nvmrc
+npm ci                     # install dependencies (use ci, not install)
+npm test                   # run all web tests once (vitest)
+npm run test:watch         # re-run tests on file changes
+npx vitest run src/model/Point3D.test.ts  # run a single test file
+npm run dev                # local dev server → http://localhost:5173
+npm run build              # production build (tsc + vite)
+```
+
+### CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs both `mvn test` and `npm test` on every push/PR. Both must pass.
 
 ## Architecture
 
-Two parallel implementations live side by side:
+Three implementations of the same 3D viewer:
 
-- **`com.ullgren.vintage.simple3d`** — original 1998 Java 1.1 code, intentionally unmodified. Uses deprecated AWT APIs throughout.
-- **`com.ullgren.modern.simple3d`** — modernized equivalent targeting Java 21. Same logic, same Finnish identifiers, no deprecated APIs.
+| Implementation | Location | Language | Rendering |
+|---|---|---|---|
+| Vintage | `src/main/…/vintage/simple3d/` | Java 1.1 AWT | Wireframe only |
+| Modern | `src/main/…/modern/simple3d/` | Java 21 Swing | Solid + Gouraud shading |
+| Web | `src/web/src/` | TypeScript | Solid + Gouraud shading (Canvas) |
 
-### Class roles (identical in both packages)
+The modern Java and web apps share the same architecture and `.body` shape files (web pulls them from `src/main/resources/` at build time via `vite-plugin-static-copy`).
 
-- **`Simple3D`** — main `Frame`. Owns a `javax.swing.Timer` (40 ms interval) that fires on the EDT: each tick advances the rotation by applying `kaanna*()` calls proportional to `Lxz`/`Lyz` (angular momentum), then calls `repaint()`. Mouse clicks relative to the window centre adjust `Lxz`/`Lyz` and start/stop the timer. Menu items use individual `ActionListener` lambdas.
-- **`Kappale`** — a 3D body defined by a `Piste[]` array and an `int[][2]` edge list (`yhd`). `piirra()` applies a simple perspective projection (`PROJEKTIOKERROIN = 0.001`) and darkens edges whose both endpoints have `z > 60`. Rotation delegates to the underlying `Piste` objects.
-- **`Piste`** — a 3D point. Holds `x, y, z` as `double`. Four rotation methods (`kaannaXZ`, `kaannaYZ`, `kaannaZX`, `kaannaZY`) each apply a 2D rotation matrix at a fixed ~3° step (`aste = 0.017 * 3 ≈ 0.051 rad`). `sini` and `kosini` are pre-computed instance fields.
+### Modern/Web class structure
 
-Two built-in shapes are defined in `Simple3D`:
-- **MU** — 36-point extrusion (the letters "MU"), 55 edges
-- **Cube** — 8-point cube, 12 edges
+```
+model/      Point3D, Body, BodyLoader     — geometry and file loading
+render/     Renderer, StarField           — rasterisation and background
+render/texture/   Texture interface + NoTexture, StoneTexture, MetalTexture
+render/effect/    Effect interface + Elastic, Ripple, Vortex, Shockwave, NoEffect
+control/    AnimationController           — angular momentum + friction decay
+Simple3D / main.ts                        — app entry, wires everything together
+```
+
+### Vintage package (3 classes only)
+
+- `Simple3D` — main Frame, event handling, shape data
+- `Kappale` — wireframe body (points + edge list)
+- `Piste` — 3D point with rotation methods
+
+### `.body` file format
+
+Shape geometry lives in `src/main/resources/com/ullgren/modern/simple3d/*.body`. Format:
+```
+# comments
+points
+x y z       ← one line per vertex (doubles, space-separated)
+...
+faces
+i j k ...   ← vertex indices forming a face (one face per line, any polygon)
+...
+```
+New shapes: create a `.body` file, add it to `bodies.list`, and wire it into the Body menu.
 
 ## Key Conventions
 
-### Finnish naming — intentionally preserved
-All identifiers and comments use Finnish. Do not rename them. Key vocabulary:
+### Do NOT modify the vintage package
+`com.ullgren.vintage.simple3d` is a preserved 1998 artifact. It deliberately uses deprecated Java 1.1 APIs (`java.awt.Event`, `mouseDown()`, `action()`, `resize()`). Never modernise, refactor, or rename anything in it.
+
+### Finnish naming in vintage, English in modern/web
+The vintage package uses Finnish identifiers (see vocabulary below). The modern Java and web packages use English (`Point3D`, `Body`, `rotateXZ`, etc.).
+
 | Finnish | English |
 |---------|---------|
 | `piste` / `Piste` | point |
 | `kappale` / `Kappale` | body / object |
-| `viiva` / `viivat` | line / lines |
 | `piirra` | draw |
-| `kaanna*` | rotate (axis suffix: XZ, ZX, YZ, ZY) |
-| `vari` | colour |
-| `tummavari` | darker colour (used for far edges) |
-| `yhd` | connections / edge list |
-| `aste` | angle (in radians) |
-| `leveys` / `korkeus` | width / height |
-| `Lxz` / `Lyz` | angular momentum around respective axes |
-
-### Deprecated APIs — vintage package only
-The `com.ullgren.vintage.simple3d` package deliberately uses the deprecated Java 1.1 AWT event model (`java.awt.Event`, `mouseDown()`, `action()`, `resize()`, `size()`). Do **not** modernise that package.
-
-The `com.ullgren.modern.simple3d` package uses:
-- `MouseAdapter` / `ActionListener` lambdas on `MenuItem` instead of `mouseDown()` / `action()`
-- `setSize()` / `getSize()` instead of `resize()` / `size()`
-- `javax.swing.Timer` (40 ms, EDT-safe) instead of a background `Thread` + `Runnable`
-- `WindowAdapter.windowClosing()` → `destroy()` for proper window close
-- `setResizable(false)` since `kx`/`ky` are fixed constants
+| `kaanna*` | rotate (XZ, ZX, YZ, ZY) |
+| `vari` / `tummavari` | colour / darker colour |
+| `yhd` | edge list |
+| `Lxz` / `Lyz` | angular momentum |
 
 ### Coordinate system
-Origin at the window centre (`kx = LEVEYS/2`, `ky = KORKEUS/2`). X is positive-right, Y is positive-up, Z is positive-away-from-viewer. Perspective is applied in `Kappale.piirra()` by scaling each projected coordinate by `(1 - PROJEKTIOKERROIN * z)`.
+Origin at window centre. X right, Y up, Z away from viewer.
 
-### Shape definition pattern
-New shapes are added as two private static methods in `Simple3D`:
-- `<name>Pisteet()` returning `Piste[]`
-- `<name>Viivat()` returning `int[][2]` (pairs of indices into the points array)
-
-Then wire them up in the `action()` menu handler.
+### Feature parity
+The modern Java and web apps should stay functionally equivalent. When adding a feature to one, implement it in the other too (or note it as a follow-up).
 
 ### Branching workflow
-Always pull the latest master and create a new branch from it before starting any feature or fix:
 ```bash
 git checkout master && git pull && git checkout -b feature/<name>
 ```
