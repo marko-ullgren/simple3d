@@ -34,6 +34,8 @@ npm run build              # production build (tsc + vite)
 
 GitHub Actions (`.github/workflows/ci.yml`) runs both `mvn test` and `npm test` on every push/PR. Both must pass.
 
+Pushes to `master` that touch `src/web/` or `.body` shape files also trigger `deploy-pages.yml`, which builds and deploys the web app to GitHub Pages.
+
 ## Architecture
 
 Three implementations of the same 3D viewer:
@@ -101,7 +103,14 @@ Origin at window centre. X right, Y up, Z away from viewer.
 ### Feature parity
 The modern Java and web apps should stay functionally equivalent. When adding a feature to one, implement it in the other too (or note it as a follow-up).
 
+### Test layout
+- **Java:** tests under `src/test/java/` (JUnit 5, mirror the main package structure)
+- **Web:** tests co-located with source (`*.test.ts` next to `*.ts`)
+
+Tests in both stacks verify pixel-level displacement logic directly against buffers — no display or browser required.
+
 ### Branching workflow
+Default branch is `master`.
 ```bash
 git checkout master && git pull && git checkout -b feature/<name>
 ```
