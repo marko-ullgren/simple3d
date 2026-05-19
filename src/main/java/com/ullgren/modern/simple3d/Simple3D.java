@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Graphics;
+import java.awt.Image;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
@@ -11,6 +12,7 @@ import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import javax.swing.ButtonGroup;
@@ -85,6 +87,7 @@ public class Simple3D {
     frame.setTitle("A Simple 3D application (c) Marko Ullgren 1998-2026");
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     frame.setMinimumSize(new Dimension(150, 150));
+    loadWindowIcon();
     frame.setJMenuBar(buildMenuBar());
     frame.setContentPane(canvas);
     frame.pack();
@@ -95,6 +98,16 @@ public class Simple3D {
     body = BodyLoader.load(resource, body.getColour());
     animationController.setBody(body);
     canvas.repaint();
+  }
+
+  private void loadWindowIcon() {
+    InputStream is = getClass().getResourceAsStream(RES + "mu.png");
+    if (is != null) {
+      try {
+        Image icon = javax.imageio.ImageIO.read(is);
+        frame.setIconImage(icon);
+      } catch (IOException ignored) { }
+    }
   }
 
   /** Stops the current effect and replaces it with {@code next}. */
